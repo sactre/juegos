@@ -15,24 +15,27 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
+import java.util.ArrayList;
+
 /**
- * Abre el juego a pantalla completa y le pasa el mando de consola directamente:
- * la palanca izquierda apunta (360 grados) y los botones se mandan como teclas.
- * Así no aparece el cursor que pone el navegador de la tele.
+ * Abre los juegos a pantalla completa y les pasa los mandos de consola directamente
+ * (sin el cursor que pone el navegador de la tele). Distingue hasta 2 mandos:
+ * cada uno es un jugador (window.__pads). Los juegos de un solo jugador usan window.__pad.
  */
 public class MainActivity extends Activity {
 
-    private static final String ONLINE = "https://sactre.github.io/juegos/bolas/";
-    private static final String OFFLINE = "file:///android_asset/bolas/index.html";
+    private static final String HOME = "https://sactre.github.io/juegos/";
+    private static final String OFFLINE = "file:///android_asset/site/";
 
     private WebView web;
-    private float lastX = 0f, lastY = 0f;
-    private int hatX = 0, hatY = 0;
+    private final ArrayList<Integer> pads = new ArrayList<>();
+    private final float[] lastX = new float[2], lastY = new float[2];
+    private final int[] hatX = new int[2], hatY = new int[2];
 
     /** El juego comprueba window.AndroidApp para saber que va dentro de la app. */
     public static class Bridge {
         @JavascriptInterface
-        public String version() { return "1"; }
+        public String version() { return "2"; }
     }
 
     @Override
@@ -51,15 +54,37 @@ public class MainActivity extends Activity {
         web.setWebViewClient(new WebViewClient() {
             @Override
             public void onReceivedError(WebView view, WebResourceRequest req, WebResourceError err) {
-                // sin internet: usa la copia del juego que va dentro de la app
-                if (req.isForMainFrame()) view.loadUrl(OFFLINE);
+                // sin internet: usa la copia de los juegos que va dentro de la app
+                if (req.isForMainFrame()) {
+                    String u = req.getUrl().toString();
+                    view.loadUrl(u.startsWith(HOME) ? offline(u.substring(HOME.length())) : OFFLINE + "index.html");
+                }
+            }
+
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest req) {
+                String u = req.getUrl().toString();
+                // dentro de la app, "bolas/" tiene que ser "bolas/index.html"
+                if (u.startsWith(OFFLINE)) {
+                    String fixed = offline(u.substring(OFFLINE.length()));
+                    if (!fixed.equals(u)) { view.loadUrl(fixed); return true; }
+                }
+                return false;
             }
         });
         web.setFocusable(false);
         web.setFocusableInTouchMode(false);
         setContentView(web);
         hideSystemUi();
-        web.loadUrl(ONLINE);
+        web.loadUrl(HOME);
+    }
+
+    private static String offline(String rest) {
+        String query = "";
+        int q = rest.indexOf('?');
+        if (q >= 0) { query = rest.substring(q); rest = rest.substring(0, q); }
+        if (rest.isEmpty() || rest.endsWith("/")) rest = rest + "index.html";
+        return OFFLINE + rest + query;
     }
 
     private void hideSystemUi() {
@@ -69,52 +94,70 @@ public class MainActivity extends Activity {
     }
 
     private void js(String code) {
-        web.evaluateJavascript("window.__pad&&" + code, null);
+        web.evaluateJavascript(code, null);
     }
 
-    private void sendKey(int code, boolean down) {
-        js("__pad.key(" + code + "," + down + ")");
+    /** Jugador 1 o 2 según el orden en que se usan los mandos. El mando de la tele es el jugador 1. */
+    private int slotOf(int deviceId, boolean gamepad) {
+        if (!gamepad) return 0;
+        int i = pads.indexOf(deviceId);
+        if (i < 0) { pads.add(deviceId); i = pads.size() - 1; }
+        return Math.min(i, 1);
+    }
+
+    /** btn = nombre para los juegos de 2 jugadores; code = tecla para los de 1 jugador. */
+    private void sendKey(int slot, String btn, int code, boolean down) {
+        js("if(window.__pads)__pads.key(" + slot + ",'" + btn + "'," + down + ");"
+                + "else if(window.__pad)__pad.key(" + code + "," + down + ");");
     }
 
     @Override
     public boolean dispatchKeyEvent(KeyEvent e) {
         int code;
+        String btn;
         switch (e.getKeyCode()) {
             case KeyEvent.KEYCODE_BUTTON_A:
+                code = 13; btn = "a"; break;
             case KeyEvent.KEYCODE_DPAD_CENTER:
             case KeyEvent.KEYCODE_ENTER:
             case KeyEvent.KEYCODE_NUMPAD_ENTER:
-                code = 13; break;
+                code = 13; btn = "a"; break;
             case KeyEvent.KEYCODE_BUTTON_START:      // botón Menú (≡): pausa
-                code = 80; break;
+                code = 80; btn = "start"; break;
             case KeyEvent.KEYCODE_BUTTON_SELECT:     // botón Vista (⧉): salir, con confirmación
                 if (e.getAction() == KeyEvent.ACTION_UP) askExit();
                 return true;
             case KeyEvent.KEYCODE_BACK:
                 // la B del mando a veces llega como "Atrás": no debe sacar del juego
-                if (fromGamepad(e)) { code = 38; break; }
+                if (fromGamepad(e)) { code = 38; btn = "b"; break; }
                 if (e.getAction() == KeyEvent.ACTION_UP) askExit();
                 return true;
-            case KeyEvent.KEYCODE_BUTTON_B:          // B: cambiar de bola (antes salía de la app)
+            case KeyEvent.KEYCODE_BUTTON_B:          // B: cambiar de bola en Collar de Colores
+                code = 38; btn = "b"; break;
             case KeyEvent.KEYCODE_BUTTON_X:
+                code = 38; btn = "x"; break;
             case KeyEvent.KEYCODE_BUTTON_Y:
+                code = 38; btn = "y"; break;
             case KeyEvent.KEYCODE_BUTTON_L1:
+                code = 38; btn = "l1"; break;
             case KeyEvent.KEYCODE_BUTTON_R1:
+                code = 38; btn = "r1"; break;
             case KeyEvent.KEYCODE_DPAD_UP:
-                code = 38; break;
+                code = 38; btn = "up"; break;
             case KeyEvent.KEYCODE_DPAD_DOWN:
-                code = 40; break;
+                code = 40; btn = "down"; break;
             case KeyEvent.KEYCODE_DPAD_LEFT:
-                code = 37; break;
+                code = 37; btn = "left"; break;
             case KeyEvent.KEYCODE_DPAD_RIGHT:
-                code = 39; break;
+                code = 39; btn = "right"; break;
             default:
-                return super.dispatchKeyEvent(e);   // Atrás (B), volumen, inicio...
+                return super.dispatchKeyEvent(e);   // volumen, inicio...
         }
+        int slot = slotOf(e.getDeviceId(), fromGamepad(e));
         if (e.getAction() == KeyEvent.ACTION_DOWN) {
-            if (e.getRepeatCount() == 0 || code == 37 || code == 39) sendKey(code, true);
+            if (e.getRepeatCount() == 0 || code == 37 || code == 39) sendKey(slot, btn, code, true);
         } else if (e.getAction() == KeyEvent.ACTION_UP) {
-            sendKey(code, false);
+            sendKey(slot, btn, code, false);
         }
         return true;
     }
@@ -129,12 +172,13 @@ public class MainActivity extends Activity {
 
     private void askExit() {
         if (exitDialog != null && exitDialog.isShowing()) return;
-        js("__pad.pause(true)");   // pausa mientras se pregunta
+        js("window.__pads?__pads.pause(true):window.__pad&&__pad.pause(true)");   // pausa mientras se pregunta
         exitDialog = new AlertDialog.Builder(this)
                 .setTitle("¿Salir del juego?")
                 .setPositiveButton("Salir", (d, w) -> finish())
-                .setNegativeButton("Seguir jugando", (d, w) -> js("__pad.pause(false)"))
-                .setOnCancelListener(d -> js("__pad.pause(false)"))
+                .setNeutralButton("Elegir otro juego", (d, w) -> web.loadUrl(HOME))
+                .setNegativeButton("Seguir jugando", (d, w) -> js("window.__pad&&__pad.pause(false)"))
+                .setOnCancelListener(d -> js("window.__pad&&__pad.pause(false)"))
                 .create();
         exitDialog.show();
         exitDialog.getButton(AlertDialog.BUTTON_NEGATIVE).requestFocus();
@@ -145,23 +189,26 @@ public class MainActivity extends Activity {
         boolean joystick = (e.getSource() & InputDevice.SOURCE_JOYSTICK) == InputDevice.SOURCE_JOYSTICK
                 || (e.getSource() & InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD;
         if (joystick && e.getAction() == MotionEvent.ACTION_MOVE) {
+            int slot = slotOf(e.getDeviceId(), true);
             float x = e.getAxisValue(MotionEvent.AXIS_X);
             float y = e.getAxisValue(MotionEvent.AXIS_Y);
-            if (Math.abs(x - lastX) > 0.02f || Math.abs(y - lastY) > 0.02f) {
-                lastX = x; lastY = y;
-                js("__pad.axes(" + x + "," + y + ")");
+            if (Math.abs(x - lastX[slot]) > 0.02f || Math.abs(y - lastY[slot]) > 0.02f) {
+                lastX[slot] = x; lastY[slot] = y;
+                js("if(window.__pads)__pads.axes(" + slot + "," + x + "," + y + ");"
+                        + "else if(window.__pad)__pad.axes(" + x + "," + y + ");");
             }
             // la cruceta del mando de Xbox llega como "hat": la convertimos en flechas
             int hx = Math.round(e.getAxisValue(MotionEvent.AXIS_HAT_X));
             int hy = Math.round(e.getAxisValue(MotionEvent.AXIS_HAT_Y));
-            if (hx != hatX) {
-                if (hatX != 0) sendKey(hatX < 0 ? 37 : 39, false);
-                if (hx != 0) sendKey(hx < 0 ? 37 : 39, true);
-                hatX = hx;
+            if (hx != hatX[slot]) {
+                if (hatX[slot] != 0) sendKey(slot, hatX[slot] < 0 ? "left" : "right", hatX[slot] < 0 ? 37 : 39, false);
+                if (hx != 0) sendKey(slot, hx < 0 ? "left" : "right", hx < 0 ? 37 : 39, true);
+                hatX[slot] = hx;
             }
-            if (hy != hatY) {
-                if (hy != 0) { sendKey(hy < 0 ? 38 : 40, true); sendKey(hy < 0 ? 38 : 40, false); }
-                hatY = hy;
+            if (hy != hatY[slot]) {
+                if (hatY[slot] != 0) sendKey(slot, hatY[slot] < 0 ? "up" : "down", hatY[slot] < 0 ? 38 : 40, false);
+                if (hy != 0) sendKey(slot, hy < 0 ? "up" : "down", hy < 0 ? 38 : 40, true);
+                hatY[slot] = hy;
             }
             return true;
         }

@@ -10,8 +10,8 @@ android {
         applicationId 'com.sactre.collar'
         minSdk 21
         targetSdk 34
-        versionCode 2
-        versionName '1.1'
+        versionCode 3
+        versionName '2.0'
     }
 
     // misma firma en cada compilación, para poder actualizar la app sin desinstalarla

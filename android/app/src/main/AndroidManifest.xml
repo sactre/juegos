@@ -8,7 +8,7 @@
     <uses-feature android:name="android.hardware.gamepad" android:required="false" />
 
     <application
-        android:label="Collar de Colores"
+        android:label="Juegos de casa"
         android:icon="@drawable/icon"
         android:banner="@drawable/banner"
         android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen">
