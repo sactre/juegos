@@ -32,7 +32,7 @@ const COLORS = [
   { c:'#24a83c', d:'#0c5a1c', l:'#b6f0c0', sym:'triangle', sc:'#ffffff' },
   { c:'#a03fd6', d:'#521577', l:'#ebc6fb', sym:'square',   sc:'#ffffff' },
 ];
-// speed: velocidad al empezar (px/s). Luego sube poco a poco hasta speed*RAMP_MULT.
+// speed: velocidad al empezar (px/s). Luego sube según la dificultad (ver DIFFS).
 const LEVELS = [
   { path:0, colors:3, count:40, speed:15 },
   { path:1, colors:3, count:48, speed:17 },
@@ -47,16 +47,16 @@ function levelInfo(n){
   return { path:base.path, colors:Math.min(5, base.colors + (extra>0?1:0)),
            count: base.count + extra*6, speed: Math.min(34, base.speed + extra*3) };
 }
-// dificultad: velocidad, colores, cuántas bolas iguales salen seguidas y bolas especiales
+// dificultad: todas empiezan igual de rápido y suben un 1 % cada `every` segundos, hasta el doble.
+// También cambian los colores, cuántas bolas iguales salen seguidas y bolas especiales
 const DIFFS = [
-  { name:'Fácil',   col:'#7fe08a', speed:1.0, ramp:2.8, extraColors:0, count:1.0, repeat:0.45, maxRun:2, nearHole:0.7,  powerGap:11 },
-  { name:'Normal',  col:'#ffd54f', speed:1.45, ramp:3.0, extraColors:1, count:1.15, repeat:0.25, maxRun:2, nearHole:0.85, powerGap:15 },
-  { name:'Difícil', col:'#ff6a4a', speed:1.95, ramp:3.3, extraColors:2, count:1.3, repeat:0.08, maxRun:1, nearHole:1.0,  powerGap:22 },
+  { name:'Fácil',   col:'#7fe08a', speed:1, every:5, extraColors:0, count:1.0, repeat:0.45, maxRun:2, nearHole:0.7,  powerGap:11 },
+  { name:'Normal',  col:'#ffd54f', speed:1, every:3, extraColors:1, count:1.15, repeat:0.25, maxRun:2, nearHole:0.85, powerGap:15 },
+  { name:'Difícil', col:'#ff6a4a', speed:1, every:1, extraColors:2, count:1.3, repeat:0.08, maxRun:1, nearHole:1.0,  powerGap:22 },
 ];
 let diff = Math.max(0, Math.min(2, load('cdc_diff', 0)));
 function setDiff(d){ d=Math.max(0,Math.min(2,d)); if (d!==diff){ diff=d; save('cdc_diff',diff); sfx.swap(); } }
-const RAMP_TIME = 100;   // segundos hasta la velocidad máxima del nivel
-const RAMP_MULT = 2.8;
+const MAX_MULT = 2;      // como mucho, el doble de rápido   // segundos hasta la velocidad máxima del nivel
 
 // ---------- caminos ----------
 function chaikin(pts, iter){
@@ -523,12 +523,12 @@ function rayHit(maxLen){
 }
 
 // velocidad de la fila: entra rápido, frena, y luego acelera poco a poco
+function speedMult(){ return Math.min(MAX_MULT, 1 + Math.floor(playT/DIFFS[diff].every)*0.01); }
 function targetSpeed(front){
   if (rolling) return 220;
-  const t=Math.min(1, playT/RAMP_TIME);
-  const ease=t*t*(3-2*t);
-  let v = info.speed * (1 + (DIFFS[diff].ramp-1)*ease);
-  const step=Math.floor(ease*4);
+  const mult=speedMult();
+  let v = info.speed * mult;
+  const step=Math.floor((mult-1)*4);   // aviso cada +25 %
   if (step>speedStep){ speedStep=step; showBanner('¡Más rápido!', '#ffb15c'); }
   if (front > path.L*0.8) v*=DIFFS[diff].nearHole;   // cerca del agujero, más despacio (menos en difícil)
   if (slowT>0) v*=0.35;
@@ -969,7 +969,7 @@ function hud(){
   pill(12,y-27,w+bw,54); pill(W-312,y-27,300,54);
   ctx.fillStyle='#fff'; ctx.textAlign='left'; ctx.fillText(txt, 36, y);
   // velocímetro: 5 barritas
-  const lvl = info && !rolling ? Math.min(1, (chainV/info.speed-1)/(DIFFS[diff].ramp-1)) : 0, nb=1+Math.round(Math.max(0,lvl)*4);
+  const lvl = info && !rolling ? Math.min(1, (speedMult()-1)/(MAX_MULT-1)) : 0, nb=1+Math.round(Math.max(0,lvl)*4);
   for (let i=0;i<5;i++){
     const bx=12+w+8+i*24, bh=12+i*6;
     ctx.fillStyle = i<nb ? (backT>0 ? '#b6ff8a' : slowT>0 ? '#8fd3ff' : ['#7fe08a','#c6e86a','#ffd54f','#ffa040','#ff5a3c'][i]) : 'rgba(255,255,255,0.18)';
