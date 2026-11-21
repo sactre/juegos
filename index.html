@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Juegos de casa</title>
+<style>
+  :root{ --bg:#0f3b2a; --card:#1d5c3f; --text:#ffffff; --accent:#ffe28a; }
+  html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;}
+  body{display:flex;flex-direction:column;align-items:center;padding:6vh 16px;box-sizing:border-box;
+    background:radial-gradient(circle at 50% 30%,#2f7a4f,#0f3b2a 70%);min-height:100vh;}
+  h1{font-size:clamp(36px,6vw,80px);color:var(--accent);margin:0 0 5vh;text-shadow:0 4px 0 rgba(0,0,0,.4);}
+  .games{display:flex;flex-wrap:wrap;gap:4vw;justify-content:center;}
+  a.game{display:flex;flex-direction:column;align-items:center;gap:16px;text-decoration:none;color:var(--text);
+    background:var(--card);border:6px solid transparent;border-radius:32px;padding:32px 48px;
+    font-size:clamp(28px,3.5vw,52px);font-weight:bold;box-shadow:0 10px 0 rgba(0,0,0,.35);outline:none;
+    transition:transform .15s,border-color .15s;}
+  a.game:focus,a.game:hover{border-color:var(--accent);transform:scale(1.08);}
+  .balls{display:flex;gap:10px}
+  .balls span{width:54px;height:54px;border-radius:50%;box-shadow:inset -6px -8px 0 rgba(0,0,0,.25),inset 6px 6px 0 rgba(255,255,255,.35);}
+  p.hint{margin-top:6vh;font-size:clamp(20px,2.4vw,34px);opacity:.85;text-align:center;}
+</style>
+</head>
+<body>
+  <h1>Juegos de casa</h1>
+  <div class="games">
+    <a class="game" href="bolas/" autofocus>
+      <div class="balls"><span style="background:#e53935"></span><span style="background:#f7c600"></span><span style="background:#1f6fe5"></span><span style="background:#24a83c"></span></div>
+      Collar de Colores
+    </a>
+  </div>
+  <p class="hint">Pulsa OK en el mando para jugar</p>
+<script>
+  const links=[...document.querySelectorAll('a.game')];
+  links[0].focus();
+  addEventListener('keydown',e=>{
+    const i=links.indexOf(document.activeElement);
+    if(e.keyCode===37||e.keyCode===38){ links[Math.max(0,i-1)].focus(); e.preventDefault(); }
+    if(e.keyCode===39||e.keyCode===40){ links[Math.min(links.length-1,i+1)].focus(); e.preventDefault(); }
+  });
+  // mando de consola: botón A abre el juego seleccionado
+  (function poll(){
+    try{ for(const gp of navigator.getGamepads?navigator.getGamepads():[]){ if(gp&&gp.buttons[0]&&gp.buttons[0].pressed){ (document.activeElement.href?document.activeElement:links[0]).click(); return; } } }catch(e){}
+    requestAnimationFrame(poll);
+  })();
+</script>
+</body>
+</html>
