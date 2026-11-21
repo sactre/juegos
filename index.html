@@ -19,6 +19,7 @@
   a.game:focus,a.game:hover{border-color:var(--accent);transform:scale(1.08);}
   .balls{display:flex;gap:10px}
   .balls span{width:54px;height:54px;border-radius:50%;box-shadow:inset -6px -8px 0 rgba(0,0,0,.25),inset 6px 6px 0 rgba(255,255,255,.35);}
+  .balls span.star{box-shadow:none;width:auto;height:54px;font-size:54px;line-height:54px;color:#ffd93b;text-shadow:0 3px 0 #a07a00;}
   p.hint{margin-top:6vh;font-size:clamp(20px,2.4vw,34px);opacity:.85;text-align:center;}
 </style>
 </head>
@@ -28,6 +29,10 @@
     <a class="game" href="bolas/" autofocus>
       <div class="balls"><span style="background:#e53935"></span><span style="background:#f7c600"></span><span style="background:#1f6fe5"></span><span style="background:#24a83c"></span></div>
       Collar de Colores
+    </a>
+    <a class="game" href="aventura/">
+      <div class="balls"><span class="star">★</span><span class="star">★</span><span class="star">★</span></div>
+      Las estrellas perdidas
     </a>
   </div>
   <p class="hint">Pulsa OK en el mando para jugar</p>
@@ -42,6 +47,14 @@
     if(e.keyCode===37||e.keyCode===38){ links[Math.max(0,i-1)].focus(); e.preventDefault(); }
     if(e.keyCode===39||e.keyCode===40){ links[Math.min(links.length-1,i+1)].focus(); e.preventDefault(); }
   });
+  // dentro de la app de la tele: el mando llega por aquí
+  function go(d){ const i=Math.max(0,links.indexOf(document.activeElement)); links[Math.min(links.length-1,Math.max(0,i+d))].focus(); }
+  let stickT=0;
+  window.__pad={
+    key(code,down){ if(!down) return; if(code===37||code===38) go(-1); else if(code===39||code===40) go(1); else if(code===13) (document.activeElement.href?document.activeElement:links[0]).click(); },
+    axes(x,y){ const t=Date.now(); if(Math.abs(x)<0.6&&Math.abs(y)<0.6){ stickT=0; return; } if(t-stickT<400) return; stickT=t; go((Math.abs(x)>Math.abs(y)?x:y)>0?1:-1); },
+    pause(){},
+  };
   // mando de consola: botón A abre el juego seleccionado
   (function poll(){
     try{ for(const gp of navigator.getGamepads?navigator.getGamepads():[]){ if(gp&&gp.buttons[0]&&gp.buttons[0].pressed){ (document.activeElement.href?document.activeElement:links[0]).click(); return; } } }catch(e){}

@@ -3,7 +3,7 @@ name: App para Android TV
 on:
   push:
     branches: [main]
-    paths: ['android/**', 'bolas/**', '.github/workflows/android-tv.yml']
+    paths: ['android/**', 'bolas/**', 'aventura/**', 'index.html', '.github/workflows/android-tv.yml']
   workflow_dispatch:
 
 permissions:
@@ -24,10 +24,12 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Copiar el juego dentro de la app (para jugar sin internet)
+      - name: Copiar los juegos dentro de la app (para jugar sin internet)
         run: |
-          mkdir -p android/app/src/main/assets/bolas
-          cp bolas/index.html android/app/src/main/assets/bolas/index.html
+          mkdir -p android/app/src/main/assets/site/bolas android/app/src/main/assets/site/aventura
+          cp index.html android/app/src/main/assets/site/index.html
+          cp bolas/index.html android/app/src/main/assets/site/bolas/index.html
+          cp aventura/index.html android/app/src/main/assets/site/aventura/index.html
 
       - name: Compilar la app
         working-directory: android
@@ -40,7 +42,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: app
-          name: Collar de Colores para Android TV
+          name: Juegos de casa para Android TV
           body: Abre https://sactre.github.io/juegos/apk en la tele para descargarla e instalarla.
           files: collar-de-colores.apk
           make_latest: true
