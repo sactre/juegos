@@ -246,16 +246,47 @@ function toLogical(cx,cy){ return { x:(cx-offX)/scale, y:(cy-offY)/scale }; }
 function aimAt(cx,cy){ const p=toLogical(cx,cy); if (Math.hypot(p.x-SX,p.y-SY) > 20) aim=Math.atan2(p.y-SY, p.x-SX); }
 function onTurtle(cx,cy){ const p=toLogical(cx,cy); return Math.hypot(p.x-SX,p.y-SY) < 85; }
 
-// ratón
-cv.addEventListener('mousemove', e=>{ if (state==='play' && !usedTouch) aimAt(e.clientX,e.clientY); });
-cv.addEventListener('mousedown', e=>{
-  if (usedTouch) return;
-  e.preventDefault();
-  if (e.button===2 || (state==='play' && onTurtle(e.clientX,e.clientY))){ swap(); return; }
-  if (state!=='play' && diffHit(e.clientX,e.clientY)) return;
-  if (state==='play') aimAt(e.clientX,e.clientY);
-  confirm();
-});
+// ratón y cursor de la tele.
+// En la tele la palanca del mando mueve un cursor: ahí la tortuga apunta hacia
+// donde EMPUJAS (la dirección en que se mueve el cursor), como con una palanca.
+// En un ordenador apunta hacia donde está el ratón. ?tv=1 / ?tv=0 lo fuerza.
+const UA=navigator.userAgent||'';
+const tvParam=(location.search.match(/[?&]tv=(\d)/)||[])[1];
+const isDesktop=/Windows NT|Macintosh|X11|CrOS/.test(UA) && !/SMART-?TV|Tizen|Web0S|webOS|NetCast|Android ?TV|GoogleTV|BRAVIA|AFT|CrKey|HbbTV/i.test(UA);
+const dirMode = tvParam ? tvParam==='1' : !isDesktop;
+let lastPointerEvt=0, lastPX=null, lastPY=null, sdx=0, sdy=0;
+function locked(){ return document.pointerLockElement===cv; }
+function stickMove(dx,dy){
+  if (state!=='play') return;
+  sdx=sdx*0.45+dx; sdy=sdy*0.45+dy;
+  if (Math.hypot(sdx,sdy) > 3) aim=Math.atan2(sdy,sdx);
+}
+function moveEvt(e){
+  if (e.pointerType==='touch') return;
+  if (dirMode){
+    let dx=e.movementX, dy=e.movementY;
+    if (!locked() && (dx===undefined || (dx===0 && dy===0)) && lastPX!==null){ dx=e.clientX-lastPX; dy=e.clientY-lastPY; }
+    lastPX=e.clientX; lastPY=e.clientY;
+    if (dx||dy) stickMove(dx||0, dy||0);
+  } else if (state==='play' && !usedTouch) aimAt(e.clientX,e.clientY);
+}
+function pointerPress(cx,cy,isTouch){
+  lastPointerEvt=now(); usedTouch=!!isTouch; audio();
+  if (state!=='play'){ if (locked()) { confirm(); return false; } if (!diffHit(cx,cy)) confirm(); return false; }
+  if (dirMode && !isTouch) return true;     // en la tele: se dispara hacia donde mira la tortuga
+  if (onTurtle(cx,cy)){ swap(); return false; }
+  aimAt(cx,cy); return true;
+}
+if (window.PointerEvent) addEventListener('pointermove', moveEvt, {passive:true});
+else addEventListener('mousemove', moveEvt, {passive:true});
+addEventListener('wheel', e=>e.preventDefault(), {passive:false});
+// con el cursor "atrapado" el cursor no choca con los bordes de la pantalla
+function tryLock(){ try { if (dirMode && !locked() && cv.requestPointerLock){ const r=cv.requestPointerLock(); if (r && r.catch) r.catch(()=>{}); } } catch(e){} }
+setInterval(()=>{ if (locked() && state!=='play' && state!=='losing'){ try { document.exitPointerLock(); } catch(e){} } }, 300);
+// en la tele: pulsación corta = disparar; mantener pulsado medio segundo = cambiar de bola
+let holdTimer=null, holdSwapped=false;
+function tvDown(){ holdSwapped=false; clearTimeout(holdTimer); holdTimer=setTimeout(()=>{ holdSwapped=true; swap(); }, 450); }
+function tvUp(){ clearTimeout(holdTimer); if (holdTimer && !holdSwapped && state==='play') shoot(); holdTimer=null; }
 let diffBoxes=[];
 function diffHit(cx,cy){
   if (!(state==='title' || state==='win' || state==='lose')) return false;
@@ -265,30 +296,52 @@ function diffHit(cx,cy){
 }
 cv.addEventListener('contextmenu', e=>e.preventDefault());
 
-// táctil (iPad): tocar la tortuga cambia de bola; tocar en otro sitio apunta,
-// arrastrar el dedo ajusta la puntería y al levantarlo se dispara.
-let touchAiming=null;
-cv.addEventListener('touchstart', e=>{
-  e.preventDefault(); usedTouch=true; audio();
-  const t=e.changedTouches[0];
-  if (state!=='play'){ touchAiming=null; if (!diffHit(t.clientX,t.clientY)) confirm(); return; }
-  if (onTurtle(t.clientX,t.clientY)){ swap(); touchAiming=null; return; }
-  touchAiming=t.identifier; aimAt(t.clientX,t.clientY);
-}, {passive:false});
-cv.addEventListener('touchmove', e=>{
-  e.preventDefault();
-  for (const t of e.changedTouches) if (t.identifier===touchAiming && state==='play') aimAt(t.clientX,t.clientY);
-}, {passive:false});
-cv.addEventListener('touchend', e=>{
-  e.preventDefault(); audio();
-  for (const t of e.changedTouches){
-    if (t.identifier===touchAiming){
-      touchAiming=null;
-      if (state==='play'){ aimAt(t.clientX,t.clientY); shoot(); }
+// pulsar con ratón, cursor de la tele o dedo (iPad).
+// Con el dedo se puede arrastrar para apuntar; al levantarlo se dispara.
+let pressId=null;
+if (window.PointerEvent){
+  cv.addEventListener('pointerdown', e=>{
+    e.preventDefault();
+    if (e.button===2){ swap(); return; }
+    const touch=e.pointerType==='touch';
+    pressId = pointerPress(e.clientX,e.clientY,touch) ? e.pointerId : null;
+    if (pressId!==null && !touch){
+      pressId=null;
+      if (dirMode){ tryLock(); tvDown(); } else shoot();
     }
-  }
-}, {passive:false});
-cv.addEventListener('touchcancel', ()=>{ touchAiming=null; });
+  });
+  addEventListener('pointerup', e=>{ lastPointerEvt=now(); if (dirMode && e.pointerType!=='touch') tvUp(); });
+  cv.addEventListener('pointermove', e=>{ if (e.pointerId===pressId && state==='play') aimAt(e.clientX,e.clientY); });
+  cv.addEventListener('pointerup', e=>{
+    if (e.pointerId===pressId){ pressId=null; if (state==='play'){ aimAt(e.clientX,e.clientY); shoot(); } }
+  });
+  cv.addEventListener('pointercancel', ()=>{ pressId=null; });
+  cv.addEventListener('touchstart', e=>e.preventDefault(), {passive:false});
+  cv.addEventListener('touchmove', e=>e.preventDefault(), {passive:false});
+} else {
+  let touchAiming=null;
+  cv.addEventListener('mousedown', e=>{
+    if (usedTouch) return;
+    e.preventDefault();
+    if (e.button===2){ swap(); return; }
+    if (pointerPress(e.clientX,e.clientY,false)){ if (dirMode) tvDown(); else shoot(); }
+  });
+  addEventListener('mouseup', ()=>{ lastPointerEvt=now(); if (dirMode && !usedTouch) tvUp(); });
+  cv.addEventListener('touchstart', e=>{
+    e.preventDefault(); const t=e.changedTouches[0];
+    touchAiming = pointerPress(t.clientX,t.clientY,true) ? t.identifier : null;
+  }, {passive:false});
+  cv.addEventListener('touchmove', e=>{
+    e.preventDefault();
+    for (const t of e.changedTouches) if (t.identifier===touchAiming && state==='play') aimAt(t.clientX,t.clientY);
+  }, {passive:false});
+  cv.addEventListener('touchend', e=>{
+    e.preventDefault(); audio();
+    for (const t of e.changedTouches) if (t.identifier===touchAiming){ touchAiming=null; if (state==='play'){ aimAt(t.clientX,t.clientY); shoot(); } }
+  }, {passive:false});
+}
+// algunos navegadores de TV solo mandan "click"
+cv.addEventListener('click', e=>{ if (now()-lastPointerEvt > 600){ if (pointerPress(e.clientX,e.clientY,false)) shoot(); } });
 document.addEventListener('gesturestart', e=>e.preventDefault());
 cv.focus();
 
@@ -913,7 +966,7 @@ function drawTitle(){
       'Junta 3 bolas del mismo color para que exploten.',
       'Las bolas con anillo dorado traen una sorpresa.',
       '◀ ▶  apuntar      ▲ ▼  cambiar de bola      OK  disparar',
-      'Mando de consola: palanca para apuntar, A para disparar',
+      dirMode ? 'Mando de consola: palanca apunta, A dispara, mantén A para cambiar' : 'Mando de consola: palanca para apuntar, A para disparar',
       'En el iPad: toca para disparar, toca la tortuga para cambiar',
     ];
   panel('Collar de Colores', lines, level>1 ? okWord()+' para seguir en el nivel '+level : okWord()+' para empezar', true);
@@ -982,7 +1035,7 @@ function frame(t){
 }
 requestAnimationFrame(frame);
 // para pruebas
-window.__game = { get state(){return state;}, get balls(){return balls;}, get queue(){return queue;}, get score(){return score;}, setAim(a){aim=a;}, get cur(){return cur;}, pos(i){ return ballXY(balls[i]); }, view(){ return {scale,offX,offY}; }, get speed(){ return chainV; }, set playT(v){ playT=v; } };
+window.__game = { get shot(){return !!shot;}, get aim(){return aim;}, get state(){return state;}, get balls(){return balls;}, get queue(){return queue;}, get score(){return score;}, setAim(a){aim=a;}, get cur(){return cur;}, pos(i){ return ballXY(balls[i]); }, view(){ return {scale,offX,offY}; }, get speed(){ return chainV; }, set playT(v){ playT=v; } };
 })();
 </script>
 </body>
