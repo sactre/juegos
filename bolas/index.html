@@ -282,8 +282,10 @@ function steerAim(dt){
   aim += Math.sign(d)*step;
   if (Math.abs(d)<0.01) aimTarget=null;
 }
+let padSeenT=-1e9, padName='';
 function moveEvt(e){
   if (e.pointerType==='touch') return;
+  if (now()-padSeenT < 3000) return;   // si el mando llega de verdad, mandan la palanca, no el cursor
   if (dirMode && TV_AIM==='cursor'){
     // la tortuga gira (poco a poco) hasta mirar al cursor: sirve para cualquier ángulo
     if (state==='play'){ const p=toLogical(e.clientX,e.clientY); if (Math.hypot(p.x-SX,p.y-SY)>20) aimTarget=Math.atan2(p.y-SY,p.x-SX); }
@@ -304,6 +306,7 @@ function pointerPress(cx,cy,isTouch){
 if (window.PointerEvent) addEventListener('pointermove', moveEvt, {passive:true});
 else addEventListener('mousemove', moveEvt, {passive:true});
 addEventListener('wheel', e=>e.preventDefault(), {passive:false});
+if (dirMode) cv.style.cursor='none';
 // con el cursor "atrapado" el cursor no choca con los bordes de la pantalla
 function tryLock(){ try { if (dirMode && !locked() && cv.requestPointerLock){ const r=cv.requestPointerLock(); if (r && r.catch) r.catch(()=>{}); } } catch(e){} }
 setInterval(()=>{ if (locked() && state!=='play' && state!=='losing'){ try { document.exitPointerLock(); } catch(e){} } }, 300);
@@ -376,6 +379,8 @@ function pollPad(dt){
   try { pads = navigator.getGamepads ? navigator.getGamepads() : []; } catch(e){}
   for (const gp of pads){
     if (!gp) continue;
+    padName = gp.id || 'mando';
+    if (gp.buttons.some(b=>b&&b.pressed) || gp.axes.some(a=>Math.abs(a)>0.3)) padSeenT=now();
     const btn = i => !!(gp.buttons[i] && gp.buttons[i].pressed);
     const press = i => { const p=btn(i), was=padPrev[gp.index+':'+i]; padPrev[gp.index+':'+i]=p; return p && !was; };
     const menu = state==='title' || state==='win' || state==='lose';
@@ -1042,7 +1047,11 @@ function draw(){
   if (state==='win') panel('¡Muy bien!', ['Has terminado el nivel '+level+'.', 'Puntos de este nivel: '+levelScore], okWord()+' para el nivel '+(level+1), true);
   if (state==='lose') panel('¡Casi!', ['Las bolas llegaron al agujero.', 'No pasa nada, vuelve a intentarlo.'], okWord()+' para jugar otra vez', true);
   if (state==='pause') panel('Pausa', ['El juego está parado.'], okWord()+' para seguir');
-  if (LOWPOWER){ ctx.font='bold 22px '+FONT; ctx.textAlign='left'; ctx.fillStyle='rgba(255,255,255,0.6)'; ctx.fillText(Math.round(fpsAvg)+' fps', 14, 22); }
+  if (LOWPOWER){
+    ctx.font='bold 22px '+FONT; ctx.textAlign='left'; ctx.fillStyle='rgba(255,255,255,0.75)';
+    const pad = padName ? 'mando detectado ✓' : 'mando NO detectado (la tele lo usa como cursor)';
+    ctx.fillText(Math.round(fpsAvg)+' fps  ·  '+pad, 14, 22);
+  }
   ctx.restore();
   portraitHint();
 }
