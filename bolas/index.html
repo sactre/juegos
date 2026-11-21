@@ -256,6 +256,10 @@ addEventListener('keyup', onKeyUp);
 // la app de Android TV manda aquí los botones y la palanca del mando (sin cursor)
 window.__pad = {
   key(code, down){ padName='app'; if (down) onKeyDown({ keyCode:code, repeat:false, preventDefault(){} }); else onKeyUp({ keyCode:code }); },
+  pause(on){
+    if (on && state==='play'){ state='pause'; pausedByApp=true; }
+    else if (!on && pausedByApp && state==='pause'){ state='play'; pausedByApp=false; }
+  },
   axes(x, y){
     padSeenT=now(); padName='app';
     const m=Math.hypot(x,y);
@@ -298,7 +302,7 @@ function steerAim(dt){
   aim += Math.sign(d)*step;
   if (Math.abs(d)<0.01) aimTarget=null;
 }
-let padSeenT=-1e9, padName='', stickPeak=0;
+let padSeenT=-1e9, padName='', stickPeak=0, pausedByApp=false;
 function moveEvt(e){
   if (e.pointerType==='touch') return;
   if (now()-padSeenT < 3000) return;   // si el mando llega de verdad, mandan la palanca, no el cursor
@@ -1032,7 +1036,7 @@ function drawTitle(){
       'Junta 3 bolas del mismo color para que exploten.',
       'Las bolas con anillo dorado traen una sorpresa.',
       '◀ ▶  apuntar      ▲ ▼  cambiar de bola      OK  disparar',
-      IN_APP ? 'Mando: la palanca apunta · A dispara · X o Y cambian de bola' : dirMode ? 'Mando: la tortuga mira al cursor · A dispara · mantén A para cambiar' : 'Mando de consola: palanca para apuntar, A para disparar',
+      IN_APP ? 'Palanca apunta · A dispara · B cambia de bola · ≡ pausa · ⧉ salir' : dirMode ? 'Mando: la tortuga mira al cursor · A dispara · mantén A para cambiar' : 'Mando de consola: palanca para apuntar, A para disparar',
       'En el iPad: toca para disparar, toca la tortuga para cambiar',
     ];
   panel('Collar de Colores', lines, level>1 ? okWord()+' para seguir en el nivel '+level : okWord()+' para empezar', true);

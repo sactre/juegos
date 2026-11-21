@@ -10,8 +10,21 @@ android {
         applicationId 'com.sactre.collar'
         minSdk 21
         targetSdk 34
-        versionCode 1
-        versionName '1.0'
+        versionCode 2
+        versionName '1.1'
+    }
+
+    // misma firma en cada compilación, para poder actualizar la app sin desinstalarla
+    signingConfigs {
+        juegos {
+            storeFile file('juegos.keystore')
+            storePassword 'juegos-tv'
+            keyAlias 'juegos'
+            keyPassword 'juegos-tv'
+        }
+    }
+    buildTypes {
+        debug { signingConfig signingConfigs.juegos }
     }
 
     compileOptions {

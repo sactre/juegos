@@ -1,6 +1,7 @@
 package com.sactre.collar;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.os.Bundle;
 import android.view.InputDevice;
 import android.view.KeyEvent;
@@ -83,8 +84,18 @@ public class MainActivity extends Activity {
             case KeyEvent.KEYCODE_DPAD_CENTER:
             case KeyEvent.KEYCODE_ENTER:
             case KeyEvent.KEYCODE_NUMPAD_ENTER:
-            case KeyEvent.KEYCODE_BUTTON_START:
                 code = 13; break;
+            case KeyEvent.KEYCODE_BUTTON_START:      // botón Menú (≡): pausa
+                code = 80; break;
+            case KeyEvent.KEYCODE_BUTTON_SELECT:     // botón Vista (⧉): salir, con confirmación
+                if (e.getAction() == KeyEvent.ACTION_UP) askExit();
+                return true;
+            case KeyEvent.KEYCODE_BACK:
+                // la B del mando a veces llega como "Atrás": no debe sacar del juego
+                if (fromGamepad(e)) { code = 38; break; }
+                if (e.getAction() == KeyEvent.ACTION_UP) askExit();
+                return true;
+            case KeyEvent.KEYCODE_BUTTON_B:          // B: cambiar de bola (antes salía de la app)
             case KeyEvent.KEYCODE_BUTTON_X:
             case KeyEvent.KEYCODE_BUTTON_Y:
             case KeyEvent.KEYCODE_BUTTON_L1:
@@ -106,6 +117,27 @@ public class MainActivity extends Activity {
             sendKey(code, false);
         }
         return true;
+    }
+
+    private static boolean fromGamepad(KeyEvent e) {
+        int src = e.getSource();
+        return (src & InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD
+                || (src & InputDevice.SOURCE_JOYSTICK) == InputDevice.SOURCE_JOYSTICK;
+    }
+
+    private AlertDialog exitDialog;
+
+    private void askExit() {
+        if (exitDialog != null && exitDialog.isShowing()) return;
+        js("__pad.pause(true)");   // pausa mientras se pregunta
+        exitDialog = new AlertDialog.Builder(this)
+                .setTitle("¿Salir del juego?")
+                .setPositiveButton("Salir", (d, w) -> finish())
+                .setNegativeButton("Seguir jugando", (d, w) -> js("__pad.pause(false)"))
+                .setOnCancelListener(d -> js("__pad.pause(false)"))
+                .create();
+        exitDialog.show();
+        exitDialog.getButton(AlertDialog.BUTTON_NEGATIVE).requestFocus();
     }
 
     @Override
