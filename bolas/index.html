@@ -126,7 +126,8 @@ const bgcv=document.getElementById('bg'), bctx=bgcv.getContext('2d', {alpha:fals
 let bgShown=null;
 let scale=1, offX=0, offY=0, dpr=1;
 // las teles tienen poca potencia: dibujamos a menos resolución
-const LOWPOWER = /SMART-?TV|Tizen|Web0S|webOS|NetCast|Android ?TV|GoogleTV|BRAVIA|AFT|CrKey|HbbTV/i.test(navigator.userAgent||'') || /[?&]tv=1/.test(location.search);
+const IN_APP = !!window.AndroidApp;
+const LOWPOWER = IN_APP || /SMART-?TV|Tizen|Web0S|webOS|NetCast|Android ?TV|GoogleTV|BRAVIA|AFT|CrKey|HbbTV/i.test(navigator.userAgent||'') || /[?&]tv=1/.test(location.search);
 function resize(){
   dpr=Math.min(2, window.devicePixelRatio||1);
   if (LOWPOWER) dpr=Math.min(1, 1280/Math.max(1,innerWidth));
@@ -232,7 +233,7 @@ function confirm(){
   else if (state==='play') shoot();
 }
 function swap(){ if (state!=='play') return; const t=cur; cur=nxt; nxt=t; swapAnim=1; sfx.swap(); }
-addEventListener('keydown', e=>{
+function onKeyDown(e){
   const k=e.keyCode;
   if ([13,32,37,38,39,40].includes(k)) e.preventDefault();
   const menu = state==='title' || state==='win' || state==='lose';
@@ -245,11 +246,21 @@ addEventListener('keydown', e=>{
   } else if (k===38 || k===40){ if (!e.repeat) swap(); }
   else if (k===13 || k===32){ if (!e.repeat) confirm(); }
   else if (k===80 || k===19){ if (state==='play') state='pause'; else if (state==='pause') state='play'; }
-});
-addEventListener('keyup', e=>{
+}
+function onKeyUp(e){
   if (e.keyCode===37) held.left=false;
   if (e.keyCode===39) held.right=false;
-});
+}
+addEventListener('keydown', onKeyDown);
+addEventListener('keyup', onKeyUp);
+// la app de Android TV manda aquí los botones y la palanca del mando (sin cursor)
+window.__pad = {
+  key(code, down){ padName='app'; if (down) onKeyDown({ keyCode:code, repeat:false, preventDefault(){} }); else onKeyUp({ keyCode:code }); },
+  axes(x, y){
+    padSeenT=now(); padName='app';
+    if (state==='play' && Math.hypot(x,y) > 0.45) aimTarget=Math.atan2(y,x);
+  },
+};
 function toLogical(cx,cy){ return { x:(cx-offX)/scale, y:(cy-offY)/scale }; }
 function aimAt(cx,cy){ const p=toLogical(cx,cy); if (Math.hypot(p.x-SX,p.y-SY) > 20) aim=Math.atan2(p.y-SY, p.x-SX); }
 function onTurtle(cx,cy){ const p=toLogical(cx,cy); return Math.hypot(p.x-SX,p.y-SY) < 85; }
@@ -261,7 +272,7 @@ function onTurtle(cx,cy){ const p=toLogical(cx,cy); return Math.hypot(p.x-SX,p.y
 const UA=navigator.userAgent||'';
 const tvParam=(location.search.match(/[?&]tv=(\d)/)||[])[1];
 const isDesktop=/Windows NT|Macintosh|X11|CrOS/.test(UA) && !/SMART-?TV|Tizen|Web0S|webOS|NetCast|Android ?TV|GoogleTV|BRAVIA|AFT|CrKey|HbbTV/i.test(UA);
-const dirMode = tvParam ? tvParam==='1' : !isDesktop;
+const dirMode = IN_APP || (tvParam ? tvParam==='1' : !isDesktop);
 // en la tele: 'cursor' = la tortuga mira al cursor; 'dir' = hacia donde se empuja (8 direcciones)
 const TV_AIM = (location.search.match(/[?&]apuntar=(cursor|dir)/)||[])[1] || 'cursor';
 let lastPointerEvt=0, lastPX=null, lastPY=null, sdx=0, sdy=0;
@@ -995,7 +1006,7 @@ function drawTitle(){
       'Junta 3 bolas del mismo color para que exploten.',
       'Las bolas con anillo dorado traen una sorpresa.',
       '◀ ▶  apuntar      ▲ ▼  cambiar de bola      OK  disparar',
-      dirMode ? 'Mando: la tortuga mira al cursor · A dispara · mantén A para cambiar' : 'Mando de consola: palanca para apuntar, A para disparar',
+      IN_APP ? 'Mando: la palanca apunta · A dispara · X o Y cambian de bola' : dirMode ? 'Mando: la tortuga mira al cursor · A dispara · mantén A para cambiar' : 'Mando de consola: palanca para apuntar, A para disparar',
       'En el iPad: toca para disparar, toca la tortuga para cambiar',
     ];
   panel('Collar de Colores', lines, level>1 ? okWord()+' para seguir en el nivel '+level : okWord()+' para empezar', true);
@@ -1049,7 +1060,7 @@ function draw(){
   if (state==='pause') panel('Pausa', ['El juego está parado.'], okWord()+' para seguir');
   if (LOWPOWER){
     ctx.font='bold 22px '+FONT; ctx.textAlign='left'; ctx.fillStyle='rgba(255,255,255,0.75)';
-    const pad = padName ? 'mando detectado ✓' : 'mando NO detectado (la tele lo usa como cursor)';
+    const pad = IN_APP ? 'app' : padName ? 'mando detectado ✓' : 'mando NO detectado (la tele lo usa como cursor)';
     ctx.fillText(Math.round(fpsAvg)+' fps  ·  '+pad, 14, 22);
   }
   ctx.restore();

@@ -1,0 +1,46 @@
+name: App para Android TV
+
+on:
+  push:
+    branches: [main]
+    paths: ['android/**', 'bolas/**', '.github/workflows/android-tv.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Copiar el juego dentro de la app (para jugar sin internet)
+        run: |
+          mkdir -p android/app/src/main/assets/bolas
+          cp bolas/index.html android/app/src/main/assets/bolas/index.html
+
+      - name: Compilar la app
+        working-directory: android
+        run: gradle assembleDebug --no-daemon
+
+      - name: Preparar el archivo
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk collar-de-colores.apk
+
+      - name: Publicar para descargar
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: app
+          name: Collar de Colores para Android TV
+          body: Abre https://sactre.github.io/juegos/apk en la tele para descargarla e instalarla.
+          files: collar-de-colores.apk
+          make_latest: true
