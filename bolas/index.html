@@ -120,7 +120,7 @@ function pathPos(p, s){
 }
 
 // ---------- estado ----------
-const cv=document.getElementById('c'), ctx=cv.getContext('2d');
+const cv=document.getElementById('c'); let ctx=cv.getContext('2d');
 // el fondo va en otra capa y solo se dibuja cuando cambia (mucho más ligero en la tele)
 const bgcv=document.getElementById('bg'), bctx=bgcv.getContext('2d', {alpha:false});
 let bgShown=null;
@@ -258,7 +258,10 @@ window.__pad = {
   key(code, down){ padName='app'; if (down) onKeyDown({ keyCode:code, repeat:false, preventDefault(){} }); else onKeyUp({ keyCode:code }); },
   axes(x, y){
     padSeenT=now(); padName='app';
-    if (state==='play' && Math.hypot(x,y) > 0.45) aimTarget=Math.atan2(y,x);
+    const m=Math.hypot(x,y);
+    // al soltar, la palanca vuelve al centro y pasa por direcciones raras: solo cuenta si está bien empujada
+    if (state==='play' && m > 0.6 && m >= stickPeak*0.8) aimTarget=Math.atan2(y,x);
+    stickPeak = m < 0.3 ? 0 : Math.max(stickPeak*0.97, m);
   },
 };
 function toLogical(cx,cy){ return { x:(cx-offX)/scale, y:(cy-offY)/scale }; }
@@ -277,6 +280,7 @@ const dirMode = IN_APP || (tvParam ? tvParam==='1' : !isDesktop);
 const TV_AIM = (location.search.match(/[?&]apuntar=(cursor|dir)/)||[])[1] || 'cursor';
 let lastPointerEvt=0, lastPX=null, lastPY=null, sdx=0, sdy=0;
 function locked(){ return document.pointerLockElement===cv; }
+const STICK_TURN_SPEED=20;  // con la palanca de verdad sigue casi al instante
 const TURN_SPEED=5.5;   // radianes por segundo: media vuelta en ~0,6 s
 const moves=[]; let aimTarget=null;
 function stickMove(dx,dy){
@@ -289,11 +293,12 @@ function stickMove(dx,dy){
 function steerAim(dt){
   if (aimTarget===null) return;
   let d=aimTarget-aim; d=Math.atan2(Math.sin(d),Math.cos(d));
-  const step=Math.min(Math.abs(d), TURN_SPEED*dt);   // gira poco a poco, sin saltos
+  const sp = now()-padSeenT < 400 ? STICK_TURN_SPEED : TURN_SPEED;
+  const step=Math.min(Math.abs(d), sp*dt);   // gira poco a poco, sin saltos
   aim += Math.sign(d)*step;
   if (Math.abs(d)<0.01) aimTarget=null;
 }
-let padSeenT=-1e9, padName='';
+let padSeenT=-1e9, padName='', stickPeak=0;
 function moveEvt(e){
   if (e.pointerType==='touch') return;
   if (now()-padSeenT < 3000) return;   // si el mando llega de verdad, mandan la palanca, no el cursor
@@ -503,14 +508,18 @@ function rayHit(maxLen){
   const vis=[];
   for (const b of balls){ if (b.s>=0) vis.push(pathPos(path,b.s)); }
   const lim=(D*0.85)*(D*0.85);
-  for (let d=100; d<maxLen; d+=8){
-    const x=SX+ca*d, y=SY+sa*d;
-    if (x<-30||x>W+30||y<-30||y>H+30) return d;
-    for (const p of vis){
-      if ((p.x-x)*(p.x-x)+(p.y-y)*(p.y-y) < lim) return d;
-    }
+  // distancia hasta el borde de la pantalla
+  let best=maxLen;
+  if (ca>1e-6) best=Math.min(best,(W+30-SX)/ca); if (ca<-1e-6) best=Math.min(best,(-30-SX)/ca);
+  if (sa>1e-6) best=Math.min(best,(H+30-SY)/sa); if (sa<-1e-6) best=Math.min(best,(-30-SY)/sa);
+  // primera bola que toca la línea
+  for (const p of vis){
+    const dx=p.x-SX, dy=p.y-SY, t=dx*ca+dy*sa;
+    if (t<100) continue;
+    const perp=dx*dx+dy*dy-t*t;
+    if (perp<lim){ const hit=t-Math.sqrt(lim-perp); if (hit<best) best=Math.max(100,hit); }
   }
-  return maxLen;
+  return best;
 }
 
 // velocidad de la fila: entra rápido, frena, y luego acelera poco a poco
@@ -688,8 +697,25 @@ function drawSym(sym, x, y, r, col){
   else if (sym==='star'){ for (let i=0;i<10;i++){ const rr = i%2 ? r*0.22 : r*0.52, a=-Math.PI/2+i*Math.PI/5; const px=x+Math.cos(a)*rr, py=y+Math.sin(a)*rr; i?ctx.lineTo(px,py):ctx.moveTo(px,py); } ctx.closePath(); }
   ctx.fill('evenodd');
 }
+// en la tele cada bola es una sola imagen ya preparada (sombra + bola + dibujo + brillo)
+const fullSprites={};
+function fullSprite(c,r){
+  const k=c+':'+r; if (fullSprites[k]) return fullSprites[k];
+  const C=COLORS[c], sp=sprite(c,r), sh=shine(r), pad=r+12, sz=Math.ceil(pad*2*SPR);
+  const cnv=document.createElement('canvas'); cnv.width=cnv.height=sz;
+  const g=cnv.getContext('2d'); g.scale(SPR,SPR);
+  g.fillStyle='rgba(0,0,0,0.38)'; g.beginPath(); g.ellipse(pad+r*0.3,pad+r*0.62,r*0.9,r*0.42,0,0,Math.PI*2); g.fill();
+  g.drawImage(sp.cnv, pad-sp.o, pad-sp.o, sp.sz/SPR, sp.sz/SPR);
+  const saved=ctx; ctx=g;   // drawSym dibuja en ctx
+  drawSym(C.sym, pad+1.2, pad+2.4, r, 'rgba(0,0,0,0.35)'); drawSym(C.sym, pad, pad+1, r, C.sc);
+  ctx=saved;
+  g.drawImage(sh.cnv, pad-sh.o, pad-sh.o, sh.sz/SPR, sh.sz/SPR);
+  return (fullSprites[k]={ cnv, pad, sz });
+}
 function drawBall(x, y, c, r, rot, power){
-  r=r||R; const C=COLORS[c], sp=sprite(c,r), sh=shine(r);
+  r=r||R;
+  if (LOWPOWER && !power){ const f=fullSprite(c,r); ctx.drawImage(f.cnv, x-f.pad, y-f.pad, f.sz/SPR, f.sz/SPR); return; }
+  const C=COLORS[c], sp=sprite(c,r), sh=shine(r);
   ctx.fillStyle='rgba(0,0,0,0.38)'; ctx.beginPath(); ctx.ellipse(x+r*0.3,y+r*0.62,r*0.9,r*0.42,0,0,Math.PI*2); ctx.fill();
   ctx.drawImage(sp.cnv, x-sp.o, y-sp.o, sp.sz/SPR, sp.sz/SPR);
   ctx.save(); ctx.translate(x,y); if (rot) ctx.rotate(rot);
