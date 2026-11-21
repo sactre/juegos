@@ -141,7 +141,7 @@ addEventListener('resize', resize); addEventListener('orientationchange', ()=>se
 function load(k, d){ try { const v=localStorage.getItem(k); return v==null?d:JSON.parse(v); } catch(e){ return d; } }
 function save(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
 
-let level = load('cdc_level', 1), score = load('cdc_score', 0);
+let level = 1, score = 0;   // cada vez que se abre el juego empieza desde el nivel 1
 let state='title', stateT=0;
 let path, info, balls=[], queue=[], shot=null, particles=[], rings=[], texts=[];
 let aim=-Math.PI/2, cur=0, nxt=1, combo=1, rolling=true, levelScore=0;
