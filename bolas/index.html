@@ -262,6 +262,8 @@ const UA=navigator.userAgent||'';
 const tvParam=(location.search.match(/[?&]tv=(\d)/)||[])[1];
 const isDesktop=/Windows NT|Macintosh|X11|CrOS/.test(UA) && !/SMART-?TV|Tizen|Web0S|webOS|NetCast|Android ?TV|GoogleTV|BRAVIA|AFT|CrKey|HbbTV/i.test(UA);
 const dirMode = tvParam ? tvParam==='1' : !isDesktop;
+// en la tele: 'cursor' = la tortuga mira al cursor; 'dir' = hacia donde se empuja (8 direcciones)
+const TV_AIM = (location.search.match(/[?&]apuntar=(cursor|dir)/)||[])[1] || 'cursor';
 let lastPointerEvt=0, lastPX=null, lastPY=null, sdx=0, sdy=0;
 function locked(){ return document.pointerLockElement===cv; }
 const TURN_SPEED=5.5;   // radianes por segundo: media vuelta en ~0,6 s
@@ -282,7 +284,10 @@ function steerAim(dt){
 }
 function moveEvt(e){
   if (e.pointerType==='touch') return;
-  if (dirMode){
+  if (dirMode && TV_AIM==='cursor'){
+    // la tortuga gira (poco a poco) hasta mirar al cursor: sirve para cualquier ángulo
+    if (state==='play'){ const p=toLogical(e.clientX,e.clientY); if (Math.hypot(p.x-SX,p.y-SY)>20) aimTarget=Math.atan2(p.y-SY,p.x-SX); }
+  } else if (dirMode){
     let dx=e.movementX, dy=e.movementY;
     if (!locked() && (dx===undefined || (dx===0 && dy===0)) && lastPX!==null){ dx=e.clientX-lastPX; dy=e.clientY-lastPY; }
     lastPX=e.clientX; lastPY=e.clientY;
@@ -985,7 +990,7 @@ function drawTitle(){
       'Junta 3 bolas del mismo color para que exploten.',
       'Las bolas con anillo dorado traen una sorpresa.',
       '◀ ▶  apuntar      ▲ ▼  cambiar de bola      OK  disparar',
-      dirMode ? 'Mando de consola: palanca apunta, A dispara, mantén A para cambiar' : 'Mando de consola: palanca para apuntar, A para disparar',
+      dirMode ? 'Mando: la tortuga mira al cursor · A dispara · mantén A para cambiar' : 'Mando de consola: palanca para apuntar, A para disparar',
       'En el iPad: toca para disparar, toca la tortuga para cambiar',
     ];
   panel('Collar de Colores', lines, level>1 ? okWord()+' para seguir en el nivel '+level : okWord()+' para empezar', true);
