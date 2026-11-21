@@ -33,6 +33,9 @@
   <p class="hint">Pulsa OK en el mando para jugar</p>
 <script>
   const links=[...document.querySelectorAll('a.game')];
+  // sin pantalla táctil (tele u ordenador): el juego entra en modo tele
+  const touch=(navigator.maxTouchPoints||0)>0 || 'ontouchstart' in window;
+  if(!touch) links.forEach(a=>{ a.href=a.getAttribute('href')+'?tv=1'; });
   links[0].focus();
   addEventListener('keydown',e=>{
     const i=links.indexOf(document.activeElement);
