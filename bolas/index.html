@@ -121,8 +121,11 @@ function pathPos(p, s){
 // ---------- estado ----------
 const cv=document.getElementById('c'), ctx=cv.getContext('2d');
 let scale=1, offX=0, offY=0, dpr=1;
+// las teles tienen poca potencia: dibujamos a menos resolución
+const LOWPOWER = /SMART-?TV|Tizen|Web0S|webOS|NetCast|Android ?TV|GoogleTV|BRAVIA|AFT|CrKey|HbbTV/i.test(navigator.userAgent||'') || /[?&]tv=1/.test(location.search);
 function resize(){
   dpr=Math.min(2, window.devicePixelRatio||1);
+  if (LOWPOWER) dpr=Math.min(1, 1280/Math.max(1,innerWidth));
   cv.width=Math.round(innerWidth*dpr); cv.height=Math.round(innerHeight*dpr);
   scale=Math.min(innerWidth/W, innerHeight/H);
   offX=(innerWidth-W*scale)/2; offY=(innerHeight-H*scale)/2;
@@ -256,10 +259,21 @@ const isDesktop=/Windows NT|Macintosh|X11|CrOS/.test(UA) && !/SMART-?TV|Tizen|We
 const dirMode = tvParam ? tvParam==='1' : !isDesktop;
 let lastPointerEvt=0, lastPX=null, lastPY=null, sdx=0, sdy=0;
 function locked(){ return document.pointerLockElement===cv; }
+const TURN_SPEED=5.5;   // radianes por segundo: media vuelta en ~0,6 s
+const moves=[]; let aimTarget=null;
 function stickMove(dx,dy){
   if (state!=='play') return;
-  sdx=sdx*0.45+dx; sdy=sdy*0.45+dy;
-  if (Math.hypot(sdx,sdy) > 3) aim=Math.atan2(sdy,sdx);
+  const t=now(); moves.push({t,dx,dy});
+  while (moves.length && t-moves[0].t>150) moves.shift();
+  let sx=0, sy=0; for (const m of moves){ sx+=m.dx; sy+=m.dy; }
+  if (Math.hypot(sx,sy) > 6) aimTarget=Math.atan2(sy,sx);
+}
+function steerAim(dt){
+  if (aimTarget===null) return;
+  let d=aimTarget-aim; d=Math.atan2(Math.sin(d),Math.cos(d));
+  const step=Math.min(Math.abs(d), TURN_SPEED*dt);   // gira poco a poco, sin saltos
+  aim += Math.sign(d)*step;
+  if (Math.abs(d)<0.01) aimTarget=null;
 }
 function moveEvt(e){
   if (e.pointerType==='touch') return;
@@ -307,7 +321,7 @@ if (window.PointerEvent){
     pressId = pointerPress(e.clientX,e.clientY,touch) ? e.pointerId : null;
     if (pressId!==null && !touch){
       pressId=null;
-      if (dirMode){ tryLock(); tvDown(); } else shoot();
+      if (dirMode) tvDown(); else shoot();
     }
   });
   addEventListener('pointerup', e=>{ lastPointerEvt=now(); if (dirMode && e.pointerType!=='touch') tvUp(); });
@@ -367,7 +381,7 @@ function pollPad(dt){
     if (state!=='play') continue;
     // palanca izquierda: apunta directamente hacia donde se empuja
     const ax=gp.axes[0]||0, ay=gp.axes[1]||0;
-    if (Math.hypot(ax,ay) > 0.5){ const target=Math.atan2(ay,ax); let d=target-aim; d=Math.atan2(Math.sin(d),Math.cos(d)); aim += d*Math.min(1, dt*14); }
+    if (Math.hypot(ax,ay) > 0.5) aimTarget=Math.atan2(ay,ax);
     // cruceta izquierda/derecha y palanca derecha: girar poco a poco
     const rx=gp.axes[2]||0;
     if (btn(14)) aim -= 1.4*dt;
@@ -508,6 +522,7 @@ function update(dt){
     return;
   }
   if (state!=='play') return;
+  steerAim(dt);
 
   // apuntar con el mando (seguridad: si la tele no manda "soltar", paramos solos)
   for (const side of ['left','right']){
@@ -606,7 +621,7 @@ function bubbleStep(dt){
 }
 
 // ---------- sprites de bolas (se dibujan una vez) ----------
-const SPR = 2;  // resolución extra para que se vean nítidas en TV grandes
+const SPR = LOWPOWER ? 1 : 2;  // resolución extra para que se vean nítidas en TV grandes
 function makeSprite(c, r){
   const C=COLORS[c], sz=Math.ceil((r+6)*2*SPR), cnv=document.createElement('canvas');
   cnv.width=cnv.height=sz; const g=cnv.getContext('2d'); g.scale(SPR,SPR);
@@ -684,7 +699,7 @@ function strokePath(g, pts, w, col, dx, dy){
   g.stroke();
 }
 function renderBackground(p){
-  const cnv=document.createElement('canvas'); cnv.width=Math.round(W*1.5); cnv.height=Math.round(H*1.5);
+  const cnv=document.createElement('canvas'); const bk=LOWPOWER?0.8:1.5; cnv.width=Math.round(W*bk); cnv.height=Math.round(H*bk);
   const k=cnv.width/W, g=cnv.getContext('2d'); g.scale(k,k);
   const rnd=mulberry(7+(p?p.kind*13:99));
   g.lineCap='round'; g.lineJoin='round';
@@ -1013,6 +1028,7 @@ function draw(){
   if (state==='win') panel('¡Muy bien!', ['Has terminado el nivel '+level+'.', 'Puntos de este nivel: '+levelScore], okWord()+' para el nivel '+(level+1), true);
   if (state==='lose') panel('¡Casi!', ['Las bolas llegaron al agujero.', 'No pasa nada, vuelve a intentarlo.'], okWord()+' para jugar otra vez', true);
   if (state==='pause') panel('Pausa', ['El juego está parado.'], okWord()+' para seguir');
+  if (LOWPOWER){ ctx.font='bold 22px '+FONT; ctx.textAlign='left'; ctx.fillStyle='rgba(255,255,255,0.6)'; ctx.fillText(Math.round(fpsAvg)+' fps', 14, 22); }
   ctx.restore();
   portraitHint();
 }
@@ -1026,8 +1042,10 @@ function portraitHint(){
 }
 
 let last=performance.now();
+let fpsAvg=60;
 function frame(t){
-  const dt=Math.min(0.05,(t-last)/1000); last=t;
+  const raw=(t-last)/1000, dt=Math.min(0.05,raw); last=t;
+  if (raw>0) fpsAvg=fpsAvg*0.95+(1/raw)*0.05;
   if (state!=='pause') update(dt);
   else pollPad(dt);
   draw();
