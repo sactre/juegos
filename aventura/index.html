@@ -834,10 +834,14 @@ function sofiaHairFront(g,b){
     g.lineTo(sx*13,-30-b); g.quadraticCurveTo(sx*17,-38-b,sx*14,-46-b); g.quadraticCurveTo(sx*18,-54-b,sx*15,-62-b); g.closePath(); g.fill();
   }
 }
-function unicornBand(g,b){
-  g.strokeStyle='#ff7eb6'; g.lineWidth=3.5; g.beginPath(); g.arc(0,-62-b,18,Math.PI*1.15,Math.PI*1.85); g.stroke();
-  g.fillStyle='#ffd23f'; g.beginPath(); g.moveTo(-5,-78-b); g.lineTo(5,-78-b); g.lineTo(1,-98-b); g.closePath(); g.fill();
-  g.strokeStyle='#e8a200'; g.lineWidth=1.5; g.beginPath(); g.moveTo(-3,-83-b); g.lineTo(4,-85-b); g.moveTo(-1,-89-b); g.lineTo(3,-90-b); g.stroke();
+function idolStyle(g,b){
+  // estilo estrella del pop: horquillas de estrella y cascos con micrófono
+  star(g,-13,-74-b,5,0.3,'#ffd23f','#e8a200',1.2); star(g,-6,-79-b,4,0.1,'#ff9ae0','#d0509a',1.2);
+  g.strokeStyle='#2a2340'; g.lineWidth=2.2; g.lineCap='round';
+  g.beginPath(); g.arc(0,-62-b,21,Math.PI*1.1,Math.PI*1.9); g.stroke();          // diadema de los cascos
+  circle(g,-19,-58-b,4.5,'#2a2340'); circle(g,-19,-58-b,2,'#ff9ae0');            // auricular
+  g.beginPath(); g.moveTo(-18,-55-b); g.quadraticCurveTo(-12,-46-b,0,-49-b); g.stroke();   // brazo del micro
+  circle(g,1,-49-b,2.4,'#ff9ae0');
 }
 function drawKid(g, who, x, y, s, face, walk, moving, t){
   if (who==='sofia') s*=1.07;   // Sofía es un poco más alta
@@ -868,20 +872,28 @@ function drawKid(g, who, x, y, s, face, walk, moving, t){
     rrect(g,-12+lg*0.6,-10,13,8,3,'#ff7eb6'); rrect(g,0-lg*0.6,-10,13,8,3,'#ff7eb6');
     for (const wx of [-10,-3]) circle(g,wx+lg*0.6,0,2.6,'#5b3c8c');
     for (const wx of [2,9]) circle(g,wx-lg*0.6,0,2.6,'#5b3c8c');
-    // vestido blanco con rayas naranjas y florecitas
-    g.fillStyle='#fffaf2'; g.beginPath(); g.moveTo(-11,-47-bob); g.lineTo(11,-47-bob); g.lineTo(18,-16-bob); g.lineTo(-18,-16-bob); g.closePath(); g.fill();
-    g.strokeStyle='#ff8a3d'; g.lineWidth=1.6; 
-    for (const yy of [-38,-25]){ const hw=11+(yy+47)*0.23; g.beginPath(); for (let k=0;k<=8;k++){ const xx=-hw+k*hw/4; g.lineTo(xx, yy-bob+(k%2?2:-1)); } g.stroke(); }
-    circle(g,-6,-29-bob,1.8,'#ffb02e'); circle(g,6,-38-bob,1.8,'#ffb02e'); circle(g,8,-21-bob,1.8,'#ff8a3d'); circle(g,-9,-20-bob,1.8,'#ffb02e');
-    circle(g,-12,-45-bob,6.5,'#fffaf2'); circle(g,12,-45-bob,6.5,'#fffaf2');    // mangas abullonadas
+    // ropa de estrella del pop: chaqueta corta brillante, falda de tablas y calcetines altos
+    g.fillStyle='#ff7eb6'; g.beginPath(); g.moveTo(-12,-30-bob); g.lineTo(12,-30-bob); g.lineTo(18,-16-bob); g.lineTo(-18,-16-bob); g.closePath(); g.fill();
+    g.strokeStyle='rgba(180,40,110,.55)'; g.lineWidth=1.5; g.beginPath(); for (const xx of [-10,-4,2,8]){ g.moveTo(xx*0.8,-30-bob); g.lineTo(xx*1.3,-16-bob); } g.stroke();
+    rrect(g,-11,-47-bob,22,18,5,'#2a2340');                                   // camiseta negra
+    g.fillStyle='#ffd23f'; g.font='bold 9px system-ui,Arial'; star(g,0,-38-bob,4.5,0,'#ffd23f',null);
+    // chaqueta lila corta con brillos
+    g.fillStyle='#b77bff'; g.beginPath(); g.moveTo(-13,-48-bob); g.lineTo(-4,-48-bob); g.lineTo(-6,-33-bob); g.lineTo(-14,-34-bob); g.closePath(); g.fill();
+    g.beginPath(); g.moveTo(13,-48-bob); g.lineTo(4,-48-bob); g.lineTo(6,-33-bob); g.lineTo(14,-34-bob); g.closePath(); g.fill();
+    circle(g,-12,-45-bob,6.5,'#b77bff'); circle(g,12,-45-bob,6.5,'#b77bff');
+    g.fillStyle='#fff6b0'; for (const [sx,sy] of [[-10,-41],[9,-38],[-8,-36],[11,-44]]) g.fillRect(sx-1,sy-1-bob,2,2);
+    g.strokeStyle='#ffd23f'; g.lineWidth=1.5; g.beginPath(); g.moveTo(-4,-48-bob); g.lineTo(-6,-33-bob); g.moveTo(4,-48-bob); g.lineTo(6,-33-bob); g.stroke();
+    // calcetines altos
+    g.fillStyle='#ffffff'; g.fillRect(-10+lg*0.6,-17,8,5); g.fillRect(2-lg*0.6,-17,8,5);
     const ar = moving ? Math.sin(walk+Math.PI)*3 : 0;
     circle(g,-15,-35-bob+ar,5,SKIN);
-    g.strokeStyle='#8b5a2b'; g.lineWidth=3.5; g.lineCap='round'; g.beginPath(); g.moveTo(16,-35-bob-ar); g.lineTo(27,-53-bob-ar); g.stroke();
-    circle(g,28,-55-bob-ar,5,RAINBOW[((t*6)|0)%6]);
+    // varita-micrófono con estrella (pinta puentes y lanza estrellas)
+    g.strokeStyle='#e8e8f4'; g.lineWidth=3.5; g.lineCap='round'; g.beginPath(); g.moveTo(16,-35-bob-ar); g.lineTo(26,-51-bob-ar); g.stroke();
+    circle(g,27,-54-bob-ar,5.5,'#2a2340'); star(g,27,-54-bob-ar,5,t*2,RAINBOW[((t*6)|0)%6],null);
     circle(g,16,-35-bob-ar,5,SKIN);
     circle(g,0,-60-bob,18,SKIN);
     sofiaHairFront(g,bob);
-    unicornBand(g,bob);
+    idolStyle(g,bob);
     // pequitas
     g.fillStyle='rgba(160,90,50,.45)'; for (const [fx,fy] of [[-3,-55],[0,-53],[11,-55],[13,-53]]) g.fillRect(fx,fy-bob,1.4,1.4);
   }
@@ -895,7 +907,7 @@ function drawFace(g, who, x, y, s){   // retrato para el marcador
   g.save(); g.translate(x,y); g.scale(s,s); g.translate(-3,60);
   if (who==='sofia') sofiaHairBack(g,0);
   circle(g,0,-60,18,SKIN);
-  if (who==='diego') diegoHair(g,0); else { sofiaHairFront(g,0); unicornBand(g,0); }
+  if (who==='diego') diegoHair(g,0); else { sofiaHairFront(g,0); idolStyle(g,0); }
   eyes(g,-60); cheeksMouth(g,-54);
   g.restore();
 }
