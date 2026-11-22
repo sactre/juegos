@@ -146,6 +146,9 @@ let state='title', stateT=0;
 let path, info, balls=[], queue=[], shot=null, particles=[], rings=[], texts=[];
 let aim=-Math.PI/2, cur=0, nxt=1, combo=1, rolling=true, levelScore=0;
 let queuePow=[], slowT=0, backT=0, speedStep=0, banner=null;
+// bonus final: cuanto más lejos del agujero quede la cabeza de la fila al ganar, más puntos
+let lastFrontS=0, bonus=null, lastBonus=0;
+const BONUS_PX=4;   // 1 punto por cada 4 px de camino libre
 let playT=0, chainV=0, shake=0, usedTouch=false, swapAnim=0, recoil=0;
 let bgCanvas=null;
 
@@ -173,6 +176,7 @@ function startLevel(){
   for (let i=queue.length-10; i>4; i-=D_.powerGap+Math.floor(Math.random()*6)) queuePow[i]=kinds[Math.floor(Math.random()*3)];
   slowT=0; backT=0; speedStep=0; banner=null;
   shot=null; particles=[]; rings=[]; texts=[]; combo=1; rolling=true; levelScore=0;
+  lastFrontS=0; bonus=null; lastBonus=0;
   playT=0; chainV=300;
   cur=pickColor(); nxt=pickColor();
   aim=-Math.PI/2;
@@ -554,6 +558,7 @@ function update(dt){
   recoil=Math.max(0, recoil-dt*6);
   bubbleStep(dt);
 
+  if (state==='bonus'){ updateBonus(dt); return; }
   if (state==='losing'){
     for (const b of balls) b.s+=700*dt;
     balls=balls.filter(b=>b.s<path.L);
@@ -641,7 +646,30 @@ function update(dt){
 
   // ¿fin?
   if (balls.length && balls[balls.length-1].s >= path.L){ state='losing'; stateT=0; shot=null; return; }
-  if (!balls.length && !queue.length){ state='win'; stateT=0; sfx.win(); celebrate(); }
+  if (balls.length) lastFrontS=Math.max(0, balls[balls.length-1].s);
+  if (!balls.length && !queue.length) startBonus();
+}
+function startBonus(){
+  shot=null; state='bonus'; stateT=0;
+  bonus={ s:lastFrontS, start:lastFrontS, pts:0, tick:0 };
+  showBanner('¡Bonus!', '#ffe28a');
+}
+function updateBonus(dt){
+  // la bola de luz recorre el camino libre hasta el agujero (unos 3 s si el camino está entero)
+  const speed=Math.max(700, path.L/3);
+  bonus.s=Math.min(path.L, bonus.s+speed*dt);
+  const pts=Math.floor((bonus.s-bonus.start)/BONUS_PX);
+  if (pts>bonus.pts){
+    score+=pts-bonus.pts; levelScore+=pts-bonus.pts; bonus.pts=pts;
+    if (pts-bonus.tick>=25){ bonus.tick=pts; tone(600+Math.min(900,pts),0.05,'sine',0.06); }
+  }
+  const p=pathPos(path,bonus.s);
+  for (let q=0;q<2;q++) particles.push({ x:p.x, y:p.y, vx:(Math.random()-0.5)*120, vy:(Math.random()-0.5)*120, life:0.6, max:0.6, color: q?'#fff59d':'#ffffff', r:4+Math.random()*5, star:q===0 });
+  if (bonus.s>=path.L){
+    lastBonus=bonus.pts; save('cdc_score',score);
+    rings.push({ x:p.x, y:p.y, t:0, color:'#ffe28a' });
+    state='win'; stateT=0; bonus=null; sfx.win(); celebrate();
+  }
 }
 function showBanner(text, color){ banner={ text, color, t:2.2 }; }
 function celebrate(){
@@ -1084,8 +1112,16 @@ function draw(){
     ctx.globalAlpha=a; ctx.font='bold '+Math.round(64*sc)+'px '+FONT; ctx.textAlign='center'; ctx.textBaseline='middle';
     shadowText(banner.text, SX, 300, banner.color, 10); ctx.globalAlpha=1;
   }
+  if (bonus){
+    const p=pathPos(path,bonus.s), t=performance.now()/1000;
+    const g=ctx.createRadialGradient(p.x,p.y,2,p.x,p.y,R+18);
+    g.addColorStop(0,'#ffffff'); g.addColorStop(0.45,'#fff59d'); g.addColorStop(1,'rgba(255,220,90,0)');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(p.x,p.y,R+18+3*Math.sin(t*20),0,Math.PI*2); ctx.fill();
+    ctx.font='bold 72px '+FONT; ctx.textAlign='center'; ctx.textBaseline='middle';
+    shadowText('Bonus +'+bonus.pts, SX, 210, '#ffe28a', 10);
+  }
   hud();
-  if (state==='win') panel('¡Muy bien!', ['Has terminado el nivel '+level+'.', 'Puntos de este nivel: '+levelScore], okWord()+' para el nivel '+(level+1), true);
+  if (state==='win') panel('¡Muy bien!', ['Has terminado el nivel '+level+'.', 'Bonus del camino: +'+lastBonus, 'Puntos de este nivel: '+levelScore], okWord()+' para el nivel '+(level+1), true);
   if (state==='lose') panel('¡Casi!', ['Las bolas llegaron al agujero.', 'No pasa nada, vuelve a intentarlo.'], okWord()+' para jugar otra vez', true);
   if (state==='pause') panel('Pausa', ['El juego está parado.'], okWord()+' para seguir');
   if (LOWPOWER){
