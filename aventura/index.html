@@ -87,32 +87,6 @@ const LEVELS = [
  '#...T..~~...#*#..*.#',
  '#..*...~~....H....D#',
  '####################']},
- { name:'La montaña de nieve', theme:'nieve',
-   say:'Pisad los dos botones a la vez y se abrirá la reja de hielo.',
-   map:[
- '####################',
- '#1....*...#........#',
- '#2........#..*..n..#',
- '#....P....G........#',
- '#.T.......G....*...#',
- '#..n......#........#',
- '#.........#.....####',
- '#..*.P....#..*..#..#',
- '#....H....#.......D#',
- '####################']},
- { name:'La cueva de cristal', theme:'cueva',
-   say:'¡Ahora todo junto! Sois un equipo genial.',
-   map:[
- '####################',
- '#1..*..#....~...*..#',
- '#2.....#....~......#',
- '#..n...G....=...n..#',
- '#T.....G....~......#',
- '#.P....#....~.###..#',
- '#......#..R.~.#*#..#',
- '#...*..#....~...H..#',
- '#.P....#..*.~.....D#',
- '####################']},
  { name:'Los charcos', theme:'charcos',
    say:'Empujad las piedras para tapar los charcos. Si os equivocáis, pulsad B para deshacer.',
    hint:'Pista: el primer charco necesita dos piedras. ¡Llevadlas por el mismo camino, una detrás de otra!',
@@ -126,6 +100,20 @@ const LEVELS = [
  '#.R....#~..*..~....#',
  '#......#~.....~..*D#',
  '#...T..#~.....~....#',
+ '####################']},
+ { name:'La montaña de nieve', theme:'nieve',
+   say:'Los botones con dibujo de piedra solo funcionan con piedras. ¡Poned una en cada botón!',
+   hint:'Pista: si una piedra se queda pegada a la pared ya no se puede sacar. ¡Pulsad B para deshacer!',
+   map:[
+ '####################',
+ '#1....#.......#....#',
+ '#2....#..Q....#.*..#',
+ '#.....#.......G....#',
+ '#..*..#..R.R..G..*.#',
+ '#.....#.......#....#',
+ '#.T...#...Q...#..D.#',
+ '#..........*..#....#',
+ '#.....#.......#.n..#',
  '####################']},
  { name:'El lago helado', theme:'hielo', iceStars:true,
    say:'¡En el hielo las piedras resbalan! Poned una piedra encima de cada botón.',
@@ -168,6 +156,20 @@ const LEVELS = [
  '#.....~~..H..~..n..#',
  '#.*.T.~~.....=.....#',
  '#.....~~..*..~...*.#',
+ '####################']},
+ { name:'La cueva de cristal', theme:'cueva', paint:1,
+   say:'¡La última cueva! Aquí hay de todo: botones, hielo, ríos y un solo bote de pintura.',
+   hint:'Pista: la piedra del hielo puede tapar el primer río. ¡Guardad la pintura para el segundo!',
+   map:[
+ '####################',
+ '#1....#iiiiii~.n~..#',
+ '#2....#iiiiii=..~.*#',
+ '#.....#iiriii~..~..#',
+ '#..R..Xiiiiii~*.~..#',
+ '#.....#iiiiii~..=..#',
+ '#.....#iiiiii~..~.D#',
+ '#..x..#iiiiii~..~..#',
+ '#.*T..#iiiiii~*.~.n#',
  '####################']},
  { name:'El castillo de las nubes', theme:'castillo', boss:true,
    say:'¡El Nubarrón tiene la última estrella! ¡Convertidlo en arcoíris!',
@@ -228,6 +230,7 @@ const SFX = {
   paint(){ [784,880,988,1175,1319,1568].forEach((f,i)=>tone(f,.12,'sine',.1,i*.05)); },
   win(){ [523,659,784,659,784,1047].forEach((f,i)=>tone(f,.22,'triangle',.14,i*.13)); },
   boss(){ tone(200,.2,'square',.09,0,.7); },
+  empty(){ tone(180,.08,'square',.05); },
   undo(){ tone(660,.1,'sine',.14,0,.6); tone(440,.14,'sine',.12,.08); },
   slide(){ tone(900,.35,'sine',.06,0,.4); },
 };
@@ -389,8 +392,10 @@ function loadLevel(i, quiet){
 function addPlayer(slot, pos){
   const who=charOf[slot];
   players.push({ slot, who, x:pos.x, y:pos.y, kx:0, ky:0, fx:1, fy:0, face:1, hearts:5, inv:1.5, bubble:false,
-    cd:0, walk:0, moving:false, pushT:0, pushDir:null, pushing:null, bonk:0 });
+    cd:0, walk:0, moving:false, pushT:0, pushDir:null, pushing:null, bonk:0, ammo:AMMO_MAX, ammoT:0 });
 }
+// disparos: 2 cargas, se recupera 1 cada 1,5 s (2 cada 3 s)
+const AMMO_MAX=2, AMMO_TIME=1.5;
 const solo = ()=>players.length<2;
 const canPush = p => p.who==='diego' || solo();
 const canPaint = p => p.who==='sofia' || solo();
@@ -515,6 +520,8 @@ function nearBridge(p){ return bridgeSpots.some(s=>Math.hypot(cx(s.c)-p.x, cy(s.
 function action(p){
   if (p.cd>0) return;
   if (canPaint(p) && tryPaint(p)){ p.cd=0.4; return; }
+  if (p.ammo<=0){ p.cd=0.25; SFX.empty(); return; }
+  p.ammo--;
   if (p.who==='sofia'){
     const m=Math.hypot(p.fx,p.fy)||1;
     bolts.push({x:p.x+p.fx/m*24, y:p.y-18+p.fy/m*24, vx:p.fx/m*620, vy:p.fy/m*620, life:0.55});
@@ -618,6 +625,7 @@ function updatePlay(dt, frozen){
   for (const p of players){
     const I=IN[p.slot];
     p.cd-=dt; p.inv-=dt; p.bonk-=dt;
+    if (p.ammo<AMMO_MAX){ p.ammoT+=dt; if (p.ammoT>=AMMO_TIME){ p.ammo++; p.ammoT=0; } } else p.ammoT=0;
     const mx=frozen?0:I.x, my=frozen?0:I.y;
     const sp = p.bubble ? 90 : (p.who==='diego' ? 250 : 240);
     p.moving = Math.hypot(mx,my)>0.15;
@@ -1228,6 +1236,13 @@ function drawPlayer(g,p,t){
   g.font='bold 20px system-ui,Segoe UI,Roboto,Arial,sans-serif'; g.textAlign='center'; g.textBaseline='middle';
   const nm=NAMES[p.who], tw=g.measureText(nm).width+18, ny=p.y-(p.who==='sofia'?100:92);
   rrect(g,p.x-tw/2,ny-13,tw,26,13,COLORS[p.who]); g.fillStyle='#fff'; g.fillText(nm,p.x,ny+1);
+  // cargas de disparo a los lados del nombre
+  if (!p.bubble) for (let k=0;k<AMMO_MAX;k++){
+    const ox=p.x+(k?1:-1)*(tw/2+12), full=k<p.ammo;
+    circle(g,ox,ny,8,'rgba(0,0,0,.35)');
+    if (full) { circle(g,ox,ny,6,p.who==='sofia'?'#ff9ae0':'#ffb020'); circle(g,ox-2,ny-2,2,'rgba(255,255,255,.8)'); }
+    else if (k===p.ammo){ g.strokeStyle=p.who==='sofia'?'#ff9ae0':'#ffb020'; g.lineWidth=3; g.beginPath(); g.arc(ox,ny,5,-Math.PI/2,-Math.PI/2+Math.PI*2*p.ammoT/AMMO_TIME); g.stroke(); }
+  }
 }
 function drawParts(g){
   for (const pt of parts){ g.globalAlpha=Math.max(0,pt.life/pt.max);
