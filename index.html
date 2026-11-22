@@ -40,7 +40,9 @@
   const links=[...document.querySelectorAll('a.game')];
   // sin pantalla táctil (tele u ordenador): el juego entra en modo tele
   const touch=(navigator.maxTouchPoints||0)>0 || 'ontouchstart' in window;
-  if(!touch) links.forEach(a=>{ a.href=a.getAttribute('href')+'?tv=1'; });
+  // ?v=… hace que la tele cargue siempre la última versión del juego (sin esperar a la caché)
+  const v='v='+Date.now();
+  links.forEach(a=>{ a.href=a.getAttribute('href')+(touch?'?'+v:'?tv=1&'+v); });
   links[0].focus();
   addEventListener('keydown',e=>{
     const i=links.indexOf(document.activeElement);
