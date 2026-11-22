@@ -141,6 +141,8 @@ addEventListener('resize', resize); addEventListener('orientationchange', ()=>se
 function load(k, d){ try { const v=localStorage.getItem(k); return v==null?d:JSON.parse(v); } catch(e){ return d; } }
 function save(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
 
+const LIVES=1;   // cuando las bolas llegan al agujero se acaba la partida
+let lives = LIVES;
 let level = 1, score = 0;   // cada vez que se abre el juego empieza desde el nivel 1
 let state='title', stateT=0;
 let path, info, balls=[], queue=[], shot=null, particles=[], rings=[], texts=[];
@@ -229,9 +231,116 @@ const sfx = {
 // ---------- controles ----------
 const held={left:false,right:false}, heldT={left:0,right:0}, lastKey={left:0,right:0};
 function now(){ return performance.now(); }
+// ---------- ranking de los 10 mejores (se guarda en este aparato) ----------
+let lastNav=0, rankFromTitle=false, rankHighlight=-1;
+function loadRanking(){ const r=load('cdc_ranking', []); return Array.isArray(r) ? r : []; }
+function qualifies(sc){ if (sc<=0) return false; const r=loadRanking(); return r.length<10 || sc>r[r.length-1].s; }
+function showRanking(highlight, fromTitle){ rankHighlight=highlight; rankFromTitle=fromTitle; state='ranking'; stateT=0; }
+const KB=[ [...'ABCDEFGHIJ'], [...'KLMNÑOPQRS'], ['T','U','V','W','X','Y','Z','␣','⌫','OK'] ];
+let kbR=0, kbC=0, nameText='', typedPhysical=false, kbBoxes=[], nameFresh=false;
+function openNameEntry(){ nameText=String(load('cdc_name','')).slice(0,12); nameFresh=!!nameText; kbR=2; kbC=9; typedPhysical=false; state='name'; stateT=0; }
+function kbMove(dx,dy){ kbR=(kbR+dy+KB.length)%KB.length; kbC=(kbC+dx+10)%10; sfx.swap(); }
+// el último nombre usado sale ya escrito: OK lo guarda; si escribes una letra, se sustituye
+function kbType(ch){
+  if (nameFresh && ch!=='OK'){ nameFresh=false; nameText=''; if (ch==='⌫') return; }
+  if (ch==='⌫') nameText=nameText.slice(0,-1);
+  else if (ch==='OK') submitName();
+  else if (nameText.length<12) nameText+= ch==='␣' ? ' ' : ch;
+}
+function kbPress(){ kbType(KB[kbR][kbC]); }
+function kbHit(cx,cy){
+  const p=toLogical(cx,cy);
+  for (const b of kbBoxes) if (p.x>=b.x && p.x<=b.x+b.w && p.y>=b.y && p.y<=b.y+b.h){ kbR=b.r; kbC=b.c; kbPress(); return true; }
+  return false;
+}
+function nameKey(e){
+  const k=e.keyCode;
+  if (e.preventDefault) e.preventDefault();
+  if (e.key && e.key.length===1 && /[a-zñ ]/i.test(e.key)){ typedPhysical=true; kbType(e.key===' ' ? '␣' : e.key.toUpperCase()); return; }
+  if (k===8){ kbType('⌫'); return; }
+  if (k===37) kbMove(-1,0); else if (k===39) kbMove(1,0); else if (k===38) kbMove(0,-1); else if (k===40) kbMove(0,1);
+  else if (k===13 || k===32){ if (e.repeat) return; if (typedPhysical && k===13) submitName(); else kbPress(); }
+}
+function submitName(){
+  const name=nameText.trim() || 'Jugador';
+  save('cdc_name', name);
+  const r=loadRanking();
+  const entry={ n:name, s:score, l:level, d:diff, t:Date.now() };
+  r.push(entry); r.sort((a,b)=>b.s-a.s); r.length=Math.min(10,r.length);
+  save('cdc_ranking', r);
+  sfx.win();
+  showRanking(r.indexOf(entry), false);
+}
+let rankBtn=null;
+function rankBtnHit(cx,cy){ if (!rankBtn) return false; const p=toLogical(cx,cy); return p.x>=rankBtn.x && p.x<=rankBtn.x+rankBtn.w && p.y>=rankBtn.y && p.y<=rankBtn.y+rankBtn.h; }
+function card(x,y,w,h){
+  ctx.fillStyle='rgba(0,0,0,0.35)'; roundRect(x+6,y+12,w,h,36); ctx.fill();
+  const g=ctx.createLinearGradient(0,y,0,y+h);
+  g.addColorStop(0,'rgba(18,78,92,0.97)'); g.addColorStop(1,'rgba(6,36,48,0.97)');
+  ctx.fillStyle=g; roundRect(x,y,w,h,36); ctx.fill();
+  ctx.strokeStyle='#f4cf63'; ctx.lineWidth=4; ctx.stroke();
+}
+function fmt(n){ return String(n).replace(/\B(?=(\d{3})+(?!\d))/g,'.'); }
+function drawNameEntry(){
+  ctx.fillStyle='rgba(2,12,18,0.4)'; ctx.fillRect(0,0,W,H);
+  card(220,40,1160,820);
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.font='bold 70px '+FONT; shadowText('¡Nuevo récord!', W/2, 115, '#ffe28a', 10);
+  ctx.font='bold 38px '+FONT; ctx.fillStyle='#fff'; ctx.fillText(fmt(score)+' puntos · escribe tu nombre', W/2, 190);
+  // casilla del nombre
+  ctx.fillStyle='rgba(0,0,0,0.45)'; roundRect(420,230,760,90,20); ctx.fill();
+  ctx.strokeStyle='#ffffff'; ctx.lineWidth=3; ctx.stroke();
+  const blink = Math.floor(performance.now()/450)%2 ? '_' : ' ';
+  ctx.font='bold 58px '+FONT;
+  if (nameFresh){ const tw=ctx.measureText(nameText).width; ctx.fillStyle='rgba(255,226,138,0.3)'; ctx.fillRect(W/2-tw/2-8,247,tw+16,62); }
+  ctx.fillStyle='#ffe28a'; ctx.fillText(nameText+(nameFresh?'':blink), W/2, 277);
+  // teclado
+  const kw=96, kh=84, gap=12, x0=W/2-(kw*10+gap*9)/2, y0=360;
+  kbBoxes=[];
+  KB.forEach((row,r)=>row.forEach((ch,c)=>{
+    const x=x0+c*(kw+gap), y=y0+r*(kh+gap), sel=r===kbR && c===kbC;
+    kbBoxes.push({x,y,w:kw,h:kh,r,c});
+    ctx.fillStyle = sel ? '#ffe28a' : ch==='OK' ? '#2fae5a' : 'rgba(255,255,255,0.12)';
+    roundRect(x,y,kw,kh,16); ctx.fill();
+    ctx.lineWidth = sel ? 5 : 2; ctx.strokeStyle = sel ? '#ffffff' : 'rgba(255,255,255,0.3)'; ctx.stroke();
+    ctx.font='bold '+(ch.length>1?34:44)+'px '+FONT; ctx.fillStyle = sel ? '#10262e' : '#ffffff';
+    ctx.fillText(ch, x+kw/2, y+kh/2+2);
+  }));
+  ctx.font='bold 30px '+FONT; ctx.fillStyle='#cfe9ee';
+  ctx.fillText(usedTouch ? 'Toca las letras y luego OK' : 'Mueve con las flechas o la palanca · OK/A para elegir letra · OK verde para guardar', W/2, 690);
+  ctx.fillText('␣ = espacio   ·   ⌫ = borrar', W/2, 740);
+}
+function drawRanking(){
+  ctx.fillStyle='rgba(2,12,18,0.4)'; ctx.fillRect(0,0,W,H);
+  card(260,30,1080,840);
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.font='bold 70px '+FONT; shadowText('Los 10 mejores', W/2, 100, '#ffe28a', 10);
+  const r=loadRanking();
+  if (!r.length){ ctx.font='bold 40px '+FONT; ctx.fillStyle='#fff'; ctx.fillText('Todavía no hay puntuaciones. ¡Juega una partida!', W/2, 420); }
+  r.forEach((e,i)=>{
+    const y=185+i*56, hi=i===rankHighlight;
+    if (hi){ ctx.fillStyle='rgba(255,226,138,0.25)'; roundRect(300,y-25,1000,50,14); ctx.fill(); }
+    ctx.font='bold 36px '+FONT; ctx.fillStyle = hi ? '#ffe28a' : i<3 ? ['#ffd54f','#e0e0e0','#ffb27a'][i] : '#ffffff';
+    ctx.textAlign='right'; ctx.fillText((i+1)+'.', 380, y);
+    ctx.textAlign='left'; ctx.fillText(e.n, 405, y);
+    ctx.font='bold 26px '+FONT; ctx.fillStyle='rgba(255,255,255,0.7)';
+    ctx.fillText('Nivel '+e.l+' · '+(DIFFS[e.d]?DIFFS[e.d].name:''), 820, y+2);
+    ctx.font='bold 36px '+FONT; ctx.fillStyle = hi ? '#ffe28a' : '#ffffff';
+    ctx.textAlign='right'; ctx.fillText(fmt(e.s), 1270, y);
+  });
+  const a=0.65+0.35*Math.sin(performance.now()/300);
+  ctx.textAlign='center'; ctx.globalAlpha=a; ctx.fillStyle='#2fae5a'; roundRect(W/2-300,770,600,70,35); ctx.fill();
+  ctx.globalAlpha=1; ctx.font='bold 38px '+FONT; ctx.fillStyle='#fff';
+  ctx.fillText(okWord()+' para volver al inicio', W/2, 806);
+}
+function newGame(){ level=1; score=0; lives=LIVES; startLevel(); }
 function confirm(){
   audio();
-  if (state==='title' || state==='lose') startLevel();
+  if (state==='title') newGame();
+  else if (state==='lose'){ if (stateT<0.6) return; startLevel(); }
+  else if (state==='gameover'){ if (stateT<0.8) return; if (qualifies(score)) openNameEntry(); else showRanking(-1, false); }
+  else if (state==='name') kbPress();
+  else if (state==='ranking'){ if (stateT<0.4) return; state='title'; stateT=0; }
   else if (state==='win'){ if (stateT<0.6) return; level++; save('cdc_level',level); startLevel(); }
   else if (state==='pause') state='play';
   else if (state==='play') shoot();
@@ -240,6 +349,8 @@ function swap(){ if (state!=='play') return; const t=cur; cur=nxt; nxt=t; swapAn
 function onKeyDown(e){
   const k=e.keyCode;
   if ([13,32,37,38,39,40].includes(k)) e.preventDefault();
+  if (state==='name'){ nameKey(e); return; }
+  if (state==='title' && (k===40 || k===38)){ if (!e.repeat) showRanking(-1, true); return; }
   const menu = state==='title' || state==='win' || state==='lose';
   if (menu && (k===37 || k===39)){ if (!e.repeat) setDiff(diff + (k===37?-1:1)); audio(); return; }
   if (k===37 || k===39){
@@ -267,6 +378,11 @@ window.__pad = {
   axes(x, y){
     padSeenT=now(); padName='app';
     const m=Math.hypot(x,y);
+    if (state==='name'){
+      if (m>0.6 && now()-lastNav>230){ lastNav=now(); if (Math.abs(x)>Math.abs(y)) kbMove(x>0?1:-1,0); else kbMove(0,y>0?1:-1); }
+      if (m<0.3) lastNav=0;
+      return;
+    }
     // al soltar, la palanca vuelve al centro y pasa por direcciones raras: solo cuenta si está bien empujada
     if (state==='play' && m > 0.6 && m >= stickPeak*0.8) aimTarget=Math.atan2(y,x);
     stickPeak = m < 0.3 ? 0 : Math.max(stickPeak*0.97, m);
@@ -322,6 +438,8 @@ function moveEvt(e){
 }
 function pointerPress(cx,cy,isTouch){
   lastPointerEvt=now(); usedTouch=!!isTouch; audio();
+  if (state==='name'){ kbHit(cx,cy); return false; }
+  if (state==='title' && rankBtnHit(cx,cy)){ showRanking(-1,true); return false; }
   if (state!=='play'){ if (locked()) { confirm(); return false; } if (!diffHit(cx,cy)) confirm(); return false; }
   if (dirMode && !isTouch) return true;     // en la tele: se dispara hacia donde mira la tortuga
   if (onTurtle(cx,cy)){ swap(); return false; }
@@ -407,6 +525,11 @@ function pollPad(dt){
     if (gp.buttons.some(b=>b&&b.pressed) || gp.axes.some(a=>Math.abs(a)>0.3)) padSeenT=now();
     const btn = i => !!(gp.buttons[i] && gp.buttons[i].pressed);
     const press = i => { const p=btn(i), was=padPrev[gp.index+':'+i]; padPrev[gp.index+':'+i]=p; return p && !was; };
+    if (state==='name'){
+      if (press(14)) kbMove(-1,0); if (press(15)) kbMove(1,0); if (press(12)) kbMove(0,-1); if (press(13)) kbMove(0,1);
+      if (press(0)) kbPress();
+      continue;
+    }
     const menu = state==='title' || state==='win' || state==='lose';
     const ax0=gp.axes[0]||0, stickL=ax0<-0.6, stickR=ax0>0.6;
     const sl=stickL && !padPrev[gp.index+':sl'], sr=stickR && !padPrev[gp.index+':sr'];
@@ -562,7 +685,7 @@ function update(dt){
   if (state==='losing'){
     for (const b of balls) b.s+=700*dt;
     balls=balls.filter(b=>b.s<path.L);
-    if (!balls.length || stateT>2.5){ state='lose'; stateT=0; sfx.lose(); }
+    if (!balls.length || stateT>2.5){ lives--; state = lives>0 ? 'lose' : 'gameover'; stateT=0; sfx.lose(); }
     return;
   }
   if (state!=='play') return;
@@ -631,17 +754,18 @@ function update(dt){
   } else if (balls.length) balls[0].s += chainV*dt;
 
   // empuja y detecta huecos que se cierran
-  let toCheck=-1, bumps=0;
   for (let i=1;i<balls.length;i++){
-    if (balls[i].s < balls[i-1].s + D){
-      balls[i].s = balls[i-1].s + D;
-      if (balls[i].gapBefore){ if (toCheck<0) toCheck=i; bumps++; }
-    }
+    if (balls[i].s < balls[i-1].s + D) balls[i].s = balls[i-1].s + D;
   }
+  // todos los huecos que se han cerrado en este fotograma (también los que cierra un disparo al empujar la fila)
+  const joins=[];
+  for (let i=1;i<balls.length;i++) if (balls[i].gapBefore && contact(i)) joins.push(balls[i]);
   for (let i=0;i<balls.length;i++) balls[i].gapBefore = i>0 && balls[i].s - balls[i-1].s > D+1.5;
-  if (toCheck>=0){
-    const p=ballXY(balls[toCheck]); rings.push({ x:p.x, y:p.y, t:0.2, color:'#ffffff' });
-    if (!checkMatch(toCheck)){ combo=1; tone(160,0.08,'triangle',0.12,110); shake=Math.max(shake,4); }
+  for (const b of joins){
+    const i=balls.indexOf(b);
+    if (i<0) continue;    // ya explotó con otro choque
+    const p=ballXY(b); rings.push({ x:p.x, y:p.y, t:0.2, color:'#ffffff' });
+    if (!checkMatch(i)){ combo=1; tone(160,0.08,'triangle',0.12,110); shake=Math.max(shake,4); }
   }
 
   // ¿fin?
@@ -1068,12 +1192,18 @@ function drawTitle(){
       'En el iPad: toca para disparar, toca la tortuga para cambiar',
     ];
   panel('Collar de Colores', lines, level>1 ? okWord()+' para seguir en el nivel '+level : okWord()+' para empezar', true);
+  // botón para ver el ranking (▲▼ en el mando, o tocarlo)
+  rankBtn={ x:W-330, y:18, w:310, h:62 };
+  ctx.fillStyle='rgba(2,14,20,0.75)'; roundRect(rankBtn.x,rankBtn.y,rankBtn.w,rankBtn.h,31); ctx.fill();
+  ctx.strokeStyle='#f4cf63'; ctx.lineWidth=3; ctx.stroke();
+  ctx.font='bold 32px '+FONT; ctx.fillStyle='#ffe28a'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(usedTouch ? 'Ver ranking' : '▼  Ver ranking', rankBtn.x+rankBtn.w/2, rankBtn.y+rankBtn.h/2+2);
 }
 let _titleBg=null;
 function titleBg(){ return _titleBg || (_titleBg=renderBackground(null)); }
 function draw(){
   ctx.setTransform(dpr,0,0,dpr,0,0);
-  const want = state==='title' ? titleBg() : bgCanvas;
+  const want = (state==='title' || (state==='ranking' && (rankFromTitle || !path))) ? titleBg() : bgCanvas;
   if (want && want!==bgShown){
     bctx.setTransform(1,0,0,1,0,0); bctx.fillStyle='#04161f'; bctx.fillRect(0,0,bgcv.width,bgcv.height);
     bctx.setTransform(scale*dpr,0,0,scale*dpr,offX*dpr,offY*dpr); bctx.drawImage(want,0,0,W,H);
@@ -1084,6 +1214,7 @@ function draw(){
   ctx.setTransform(scale*dpr,0,0,scale*dpr,(offX+sx*scale)*dpr,(offY+sy*scale)*dpr);
   ctx.save(); ctx.beginPath(); ctx.rect(0,0,W,H); ctx.clip();
   if (state==='title'){ drawTitle(); ctx.restore(); portraitHint(); return; }
+  if (state==='ranking' && (rankFromTitle || !path)){ drawBubbles(); drawRanking(); ctx.restore(); return; }
   drawBubbles();
   drawHole();
   for (const b of balls){ if (b.s<0) continue; const p=ballXY(b); drawBall(p.x,p.y,b.color,R,b.s/R,b.power); }
@@ -1122,7 +1253,10 @@ function draw(){
   }
   hud();
   if (state==='win') panel('¡Muy bien!', ['Has terminado el nivel '+level+'.', 'Bonus del camino: +'+lastBonus, 'Puntos de este nivel: '+levelScore], okWord()+' para el nivel '+(level+1), true);
-  if (state==='lose') panel('¡Casi!', ['Las bolas llegaron al agujero.', 'No pasa nada, vuelve a intentarlo.'], okWord()+' para jugar otra vez', true);
+  if (state==='lose') panel('¡Casi!', ['Las bolas llegaron al agujero.', lives===1 ? 'Te queda 1 vida.' : 'Te quedan '+lives+' vidas.'], okWord()+' para intentarlo otra vez', true);
+  if (state==='gameover') panel('Fin de la partida', ['Has llegado al nivel '+level+'.', 'Puntos: '+fmt(score)], okWord()+(qualifies(score)?' para apuntar tu nombre':' para ver el ranking'));
+  if (state==='name') drawNameEntry();
+  if (state==='ranking') drawRanking();
   if (state==='pause') panel('Pausa', ['El juego está parado.'], okWord()+' para seguir');
   if (LOWPOWER){
     ctx.font='bold 22px '+FONT; ctx.textAlign='left'; ctx.fillStyle='rgba(255,255,255,0.75)';
@@ -1153,7 +1287,7 @@ function frame(t){
 }
 requestAnimationFrame(frame);
 // para pruebas
-window.__game = { get shot(){return !!shot;}, get aim(){return aim;}, get state(){return state;}, get balls(){return balls;}, get queue(){return queue;}, get score(){return score;}, setAim(a){aim=a;}, get cur(){return cur;}, pos(i){ return ballXY(balls[i]); }, view(){ return {scale,offX,offY}; }, get speed(){ return chainV; }, set playT(v){ playT=v; } };
+window.__game = { get shot(){return !!shot;}, get aim(){return aim;}, get state(){return state;}, get balls(){return balls;}, get queue(){return queue;}, get score(){return score;}, set score(v){score=v;}, setAim(a){aim=a;}, get cur(){return cur;}, pos(i){ return ballXY(balls[i]); }, view(){ return {scale,offX,offY}; }, get speed(){ return chainV; }, set playT(v){ playT=v; } };
 })();
 </script>
 </body>
