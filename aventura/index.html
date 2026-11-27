@@ -41,138 +41,432 @@ const rand=(a,b)=>a+Math.random()*(b-a);
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
 
 // ---------------------------------------------------------------- niveles
-// # pared  ~ agua  = sitio para puente (lo pinta Sofía)  R roca (la empuja Diego)
-// P botón  G reja (se abre pisando todos los botones a la vez)  D puerta
-// r roca sobre hielo  i hielo  Q botón para piedras  M roca gigante (2x2, la empujan los dos)
+// # pared   % pared agrietada (se rompe con el golpe)   ~ agua   = sitio para puente (se pinta con A)
+// R roca   r roca sobre hielo   i hielo   M roca gigante 2x2 (la empujan los dos a la vez)
+// P botón (niños o piedras)   Q botón solo para piedras   G reja (se abre con todos los botones)
 // x/X botón y puerta rojos, o/O botón y puerta azules (abiertas mientras se pisa el botón)
-// * estrella  H corazón  n/h/v nube gruñona (pasea / horizontal / vertical)
-// T Tito  B Nubarrón  1 2 salida de los jugadores
+// k/K llave y cerradura doradas   j/J llave y cerradura rosas (cada niño lleva una llave)
+// s cristal: con magia o golpe cambia las barreras [ (arriba al empezar) y ] (abajo al empezar)
+// @ y & portales (por parejas)   > < ^ , flechas en el suelo (derecha, izquierda, arriba, abajo)
+// p poción (Diego: magia)   m martillo (Sofía: golpe)   * estrella   $ estrella dorada (abre un nivel secreto)
+// H corazón   n/h/v nube gruñona (pasea / horizontal / vertical)   c nube con casco (solo se va con el golpe)
+// T Tito   B Nubarrón   D puerta   1 2 salida de los jugadores
+// basic:true = niveles para aprender (cada uno con lo suyo)   paint:N = botes de pintura   hint = pista de Tito
+// Los 30 primeros son la aventura (5 mundos de 6) y los 5 últimos, los niveles secretos.
 const LEVELS = [
- { name:'La pradera', theme:'pradera',
-   say:'¡Hola! Soy Tito. Recoged todas las estrellas y luego id juntos a la puerta.',
+ // ============================== MUNDO 1: LA PRADERA
+ { name:'La pradera', theme:'pradera', basic:true,
+   say:'¡Hola! Soy Tito. Recoged las estrellas y luego id juntos a la puerta. Con A o X las nubes se convierten en flores.',
    map:[
  '####################',
  '#1.....*......*....#',
  '#2..####...........#',
  '#......#....~~~....#',
- '#..*...#....~~~..*.#',
+ '#..*...#..n.~~~..*.#',
  '#......#...........#',
  '#...........####...#',
- '#..T...*.......#...#',
+ '#..T...*.......#.n.#',
  '#..........*...#..D#',
  '####################']},
- { name:'El bosque', theme:'bosque',
-   say:'¡Cuidado con las nubes gruñonas! Pulsad A y se convierten en flores.',
+ { name:'El bosque', theme:'bosque', basic:true,
+   say:'¡Mirad! {D}, coge la poción verde. {S}, coge el martillo. ¡Las paredes rotas se rompen con un golpe!',
    map:[
  '####################',
- '#1.......#.....*..D#',
- '#2...n...#.........#',
- '#........#...n...###',
- '#..*.....#.........#',
- '#T.......*....*....#',
- '#..###.......###...#',
- '#..#*....n.....#.*.#',
- '#..#......H....#...#',
+ '#1......#.....*...D#',
+ '#2..p...#..n.......#',
+ '#.......%......#####',
+ '#..m....#..*...%.*.#',
+ '#T......#......#####',
+ '#..###..###%###....#',
+ '#..#*..........n...#',
+ '#..#.....H.......*.#',
  '####################']},
  { name:'El río', theme:'rio',
-   say:'{S} pinta puentes de colores con la A. {D} empuja las rocas al agua.',
+   say:'Los dos sabéis pintar puentes con A y empujar piedras. ¡Llevad la piedra hasta el otro río!',
+   hint:'Pista: primero pintad el puente. Luego subid la piedra hasta el puente y empujadla hacia el río.',
    map:[
  '####################',
- '#1.....~~....*.....#',
- '#2..*..~~..........#',
- '#......==....n.....#',
- '#......~~......*...#',
- '#..R...~...........#',
- '#......~~...###....#',
- '#...T..~~...#*#..*.#',
- '#..*...~~....H....D#',
+ '#1.....~~.....~....#',
+ '#2..*..~~..*..~.*..#',
+ '#......==.....~....#',
+ '#......~~.....~....#',
+ '#..R...~~.....~..*.#',
+ '#......~~..n..~....#',
+ '#...T..~~.....~....#',
+ '#..*...~~..*..~...D#',
  '####################']},
  { name:'Los charcos', theme:'charcos',
-   say:'Empujad las piedras para tapar los charcos. Si os equivocáis, pulsad B para deshacer.',
-   hint:'Pista: el primer charco necesita dos piedras. ¡Llevadlas por el mismo camino, una detrás de otra!',
+   say:'Para cruzar los charcos anchos hacen falta dos piedras. ¡Pensad bien el orden!',
+   hint:'Pista: meted dos piedras en la misma fila del primer charco. La tercera piedra tiene que llegar al segundo charco.',
    map:[
  '####################',
- '#1.....#~.....~....#',
- '#2.R...#~..*..~..*.#',
- '#......~~.....~....#',
- '#..*...#~..R..~....#',
- '#......#~.....~..n.#',
- '#.R....#~..*..~....#',
- '#......#~.....~..*D#',
- '#...T..#~.....~....#',
+ '#1....#~...#~.....*#',
+ '#2.R..#~.*.#~..*...#',
+ '#.....~~...#~......#',
+ '#..R..#~.R.~~..n...#',
+ '#.....#~...#~......#',
+ '#.R...~~...#~..*...#',
+ '#..T..#~.*.#~.....D#',
+ '#*....#~...#~......#',
  '####################']},
- { name:'La montaña de nieve', theme:'nieve',
-   say:'Los botones con dibujo de piedra solo funcionan con piedras. ¡Poned una en cada botón!',
-   hint:'Pista: si una piedra se queda pegada a la pared ya no se puede sacar. ¡Pulsad B para deshacer!',
+ { name:'La llave dorada', theme:'pradera',
+   say:'¡Una cerradura! Buscad la llave dorada. Alguna pared rota esconde cosas.',
+   hint:'Pista: la llave está detrás de la pared rota de abajo. Y para cruzar el agua, empujad la piedra.',
    map:[
  '####################',
- '#1....#.......#....#',
- '#2....#..Q....#.*..#',
- '#.....#.......G....#',
- '#..*..#..R.R..G..*.#',
- '#.....#.......#....#',
- '#.T...#...Q...#..D.#',
- '#..........*..#....#',
- '#.....#.......#.n..#',
+ '#1.......#.....#...#',
+ '#2...*...#..*..#.*.#',
+ '#........#.....#...#',
+ '#..T..R..~.....K...#',
+ '#........#.....#...#',
+ '#..##%####..n..#.*.#',
+ '#..#.k####.....#...#',
+ '#..#*.####..*..#..D#',
+ '####################']},
+ { name:'El bosque escondido', theme:'bosque',
+   say:'Paredes rotas, piedras, un río ancho y una llave. ¡Y dicen que aquí hay escondida una estrella dorada!',
+   hint:'Pista: el río es ancho. Juntad las dos piedras en la misma fila. La llave está abajo, en el medio.',
+   map:[
+ '####################',
+ '#1....#...~~....#.$#',
+ '#2....#.R.~~..*.%..#',
+ '#.....%...~~....#..#',
+ '#..*..#.R.~~..n.#..#',
+ '#T....#...~~....#..#',
+ '####.#######.#######',
+ '#..*...#.k....#....#',
+ '#.H....#...*..K..*D#',
+ '####################']},
+ // ============================== MUNDO 2: LA MONTAÑA DE HIELO
+ { name:'La montaña de nieve', theme:'nieve',
+   say:'Los botones con dibujo de piedra se pisan con piedras. ¡Abrid la reja y buscad la llave!',
+   hint:'Pista: una piedra para cada botón. Si una se queda pegada a la pared, pulsad B para deshacer.',
+   map:[
+ '####################',
+ '#1.....#.....#.....#',
+ '#2.....#..Q..#..*..#',
+ '#..*...#.R...G.....#',
+ '#......#..R..#..k..#',
+ '#..T...#...Q.###K###',
+ '#......#.....#.....#',
+ '#..n...###.###.....#',
+ '#.*......*...#..*D.#',
  '####################']},
  { name:'El lago helado', theme:'hielo', iceStars:true,
-   say:'¡En el hielo las piedras resbalan! Poned una piedra encima de cada botón.',
-   hint:'Pista: las piedras resbalan hasta chocar con algo, y se paran encima de los botones.',
+   say:'¡En el hielo las piedras resbalan hasta chocar! Poned una piedra en cada botón.',
+   hint:'Pista: las piedras se paran al chocar con algo o al llegar a un botón.',
    map:[
  '####################',
- '#1.iiii*iiiiii.#...#',
- '#2.iiiiiiriiii.#.*.#',
- '#..iiriiiiiiii.#...#',
- '#..iiiiiiiiiiiQG...#',
- '#..iiiiii#iiii.G...#',
- '#..iiiiiiiQ#ii.#.*.#',
- '#..ii#iiiiiiii.#...#',
- '#T.*iiiiiiii*i.#..D#',
- '####################']},
- { name:'El templo del equipo', theme:'templo',
-   say:'El botón rojo abre la puerta roja y el azul la azul. ¡Y la roca gigante se empuja entre los dos!',
-   hint:'Pista: uno se queda en el botón y el otro pasa. Luego, {D} y {S} empujan la roca gigante a la vez hacia el río.',
+ '#1..#i#iiiiiiii#...#',
+ '#2..#iiiQiiiiii#.*.#',
+ '#...#ii#iiiiriiG...#',
+ '#.T.iiiiiiiiiiiG...#',
+ '#...#iiiiiiiiiiG...#',
+ '#...#iriiii#iiQ#...#',
+ '#.*.#iiiiiiiiii#.*.#',
+ '#...#iiQiiiiri.#..D#',
+ '####################',]},
+ { name:'Los cristales mágicos', theme:'nieve',
+   say:'¡Un cristal mágico! Lanzadle magia y las barreras de colores suben y bajan.',
+   hint:'Pista: desde la orilla, lanzad magia al cristal por encima del agua. Luego otra vez desde el otro lado.',
    map:[
  '####################',
- '#1....#....*.~.....#',
- '#2....X......~..*..#',
- '#.....#.MM...~.....#',
- '#.....#.MM...~..n.D#',
- '#..x..#......~.....#',
- '#.....#......~.....#',
- '#.....O...o..~...*.#',
- '#.*.T.#....*.~.....#',
+ '#1.....#.*....#....#',
+ '#2.....#......#.*..#',
+ '#......[......]....#',
+ '#..T...#......#....#',
+ '#......#~~~~~~#....#',
+ '#..*...~~~s~~~#....#',
+ '#......#~~~~~~#..*.#',
+ '#...*..#..*...]...D#',
  '####################']},
+ { name:'El puente de hielo', theme:'hielo',
+   say:'El botón está en un rincón. ¡Usad las barreras del cristal para parar la piedra en el hielo!',
+   hint:'Pista: la piedra tiene que llegar al botón por su fila. Una barrera levantada la para justo ahí.',
+   map:[
+ '####################',
+ '#1...#iiiiiiii#....#',
+ '#2...#iiriiiii#.*..#',
+ '#....#iiiiiii##....#',
+ '#..T.[iiiiiiiQG....#',
+ '#....#ii]iiii##....#',
+ '#.s..#iiiiiiii#..*.#',
+ '#....#iiiiiiii#....#',
+ '#.*..#iiiiiiii#...D#',
+ '####################']},
+ { name:'Las nubes con casco', theme:'nieve',
+   say:'¡Cuidado! Las nubes con casco no tienen miedo a la magia. ¡Solo el golpe les quita el casco!',
+   hint:'Pista: llevad las piedras por el hielo hasta los botones. Las nubes con casco solo se van con X.',
+   map:[
+ '####################',
+ '#1..#....c....#..$.#',
+ '#2..#.iiiiiii.#....#',
+ '#...#.irii.ii.##%###',
+ '#.T.%.iiiiiQi.#....#',
+ '#...#.iiQiiii.G....#',
+ '#...#.iiiiiri.#.c..#',
+ '#.*.#.iiiiiii.#.*..#',
+ '#...#....*....#..D.#',
+ '####################',]},
+ { name:'La cima helada', theme:'hielo',
+   say:'¡La cima de la montaña! Hielo, cristales, botones y una llave. ¡Vosotros podéis!',
+   hint:'Pista: la llave está en la isla. Hacen falta dos piedras en la fila del agua. ¡Las paredes del hielo las paran!',
+   map:[
+ '####################',
+ '#1..#iiiiiiii#.....#',
+ '#2..#iriiiiii].*...#',
+ '#...#iiiiiiii#.....#',
+ '#.T.%iiii#iii~~##K##',
+ '#...#iiiiiiii~~k#..#',
+ '#.s.#i#iiiiii~~##..#',
+ '#...#iiiiriii#.c#..#',
+ '#.*.#iiiiiiii[.*#.D#',
+ '####################',]},
+ // ============================== MUNDO 3: EL TEMPLO
+ { name:'La sala roja y azul', theme:'templo',
+   say:'El botón rojo abre las puertas rojas y el azul las azules, mientras alguien los pisa. ¡Ayudaos!',
+   hint:'Pista: uno pisa el botón rojo. El otro sube una piedra al botón azul y luego pisa el otro botón rojo del final.',
+   map:[
+ '####################',
+ '#1...#.....#.....*.#',
+ '#2...#..*..#..R....#',
+ '#....X.....O.......#',
+ '#.x..#..o..#....*..#',
+ '#....#.....#.......#',
+ '#..*.#.....###X#####',
+ '#T...#..R..#...x...#',
+ '#....#.....#..*..D.#',
+ '####################']},
+ { name:'La roca gigante', theme:'templo',
+   say:'Los dos botones abren la reja. ¡Y la roca gigante solo se mueve si empujáis los dos a la vez!',
+   hint:'Pista: {D} y {S} se ponen juntos detrás de la roca gigante y empujan hacia el río.',
+   map:[
+ '####################',
+ '#1.....#....~.....*#',
+ '#2..*..#.MM.~..*...#',
+ '#......#.MM.~......#',
+ '#..T...G....~..n...#',
+ '#......#....~......#',
+ '#..P...#..*.~..*...#',
+ '#....P.#....~......#',
+ '#.*....#....~.....D#',
+ '####################']},
+ { name:'Los portales', theme:'templo',
+   say:'¡Portales mágicos! Pisad uno y saldréis por el otro del mismo color.',
+   hint:'Pista: el portal azul lleva a la isla del medio y el rosa a la isla de arriba.',
+   map:[
+ '####################',
+ '#1....~~~*..~~~~.&.#',
+ '#2....~~~...~~~~*..#',
+ '#..@..~~~.&.~~~~.R.#',
+ '#.....~~~...~~~~~~~#',
+ '#T....~~~.@.~~~~...#',
+ '#..*..~~~...~~~~.*.#',
+ '#.....~~~.*.~~~~...#',
+ '#.....~~~...~~~~..D#',
+ '####################']},
+ { name:'Separados', theme:'templo',
+   say:'¡Empezáis separados! Usad los portales y los botones para encontraros en la puerta.',
+   hint:'Pista: uno pisa el botón rojo del medio. El otro, por su portal, llega a la sala de la puerta. Una piedra puede pisar el botón azul.',
+   map:[
+ '####################',
+ '#1..#.....#....*...#',
+ '#...#..R..#........#',
+ '#.@.#.....O..*..&..#',
+ '#...#..o..#####X####',
+ '#####.....#........#',
+ '#2..#..@..#..x.....#',
+ '#.&.#..x..#........#',
+ '#.*.#..*T.#....H..D#',
+ '####################']},
+ { name:'El tesoro del templo', theme:'templo',
+   say:'La llave rosa está debajo de la roca gigante. ¡Y alguna pared esconde un tesoro!',
+   hint:'Pista: empujad los dos la roca gigante a un lado y bajad a por la llave.',
+   map:[
+ '####################',
+ '#1....#......#...$.#',
+ '#2....#..*...#..&..#',
+ '#.....#......#######',
+ '#..T..%......#..*..#',
+ '#.....#..MM..J.....#',
+ '#..&..#..MM..#..*..#',
+ '#.....###..###.....#',
+ '#.*...##.j.###....D#',
+ '####################']},
+ { name:'El gran templo', theme:'templo',
+   say:'¡El gran templo! Botones de colores, la roca gigante, piedras y una llave.',
+   hint:'Pista: empujad los dos la roca gigante hasta el botón rojo. Así la puerta roja se queda abierta y podéis coger la llave.',
+   map:[
+ '####################',
+ '#1..#.........#....#',
+ '#2..#......x..X.k..#',
+ '#...#...MM....#....#',
+ '#.T.%...MM..R.###O##',
+ '#...#.........#....#',
+ '#.o.#.........~.*..#',
+ '#...#####K#####.*..#',
+ '#.*.#..*...D..#..H.#',
+ '####################',
+]},
+ // ============================== MUNDO 4: EL VALLE DE LOS COLORES
  { name:'El valle de los colores', theme:'pintura', paint:1,
-   say:'{S} solo tiene un bote de pintura. ¡Pensad bien antes de pintar!',
-   hint:'Pista: pintad primero el río ancho y llevad la piedra por el puente hasta el otro río.',
+   say:'Solo hay un bote de pintura y dos ríos anchos. ¡Pensad cuál pintar!',
+   hint:'Pista: pintad el primer río. Para el segundo, llevad las dos piedras a la misma fila por la pared rota.',
    map:[
  '####################',
- '#1....~~..*..~.....#',
- '#2.R..~~.....~..*..#',
- '#.....~~..n..~.....#',
- '#.....==.....~.....#',
- '#.....~~.....~....D#',
- '#.....~~..H..~..n..#',
- '#.*.T.~~.....=.....#',
- '#.....~~..*..~...*.#',
+ '#1...~~...#...~~...#',
+ '#2...~~.R.#.*.~~.*.#',
+ '#....==...%...~~...#',
+ '#.T..~~...#...==...#',
+ '#....~~.R.#...~~...#',
+ '#.*..~~...#.n.~~...#',
+ '#....~~...#...~~.*.#',
+ '#....~~...#.*.~~..D#',
+ '####################']},
+ { name:'Las flechas', theme:'pintura',
+   say:'¡Flechas en el suelo! Os llevan en su dirección y no se puede andar al revés.',
+   hint:'Pista: coged todas las estrellas de cada sala antes de subir a la flecha siguiente.',
+   map:[
+ '####################',
+ '#1..#...,...#..^...#',
+ '#2..#.*.,.*.#..^.*.#',
+ '#...#...,...#..^...#',
+ '#.T.>...,...>..^...#',
+ '#...#...,...#..^...#',
+ '#...#.*.,...#..^...#',
+ '#...#...,.*.#..^.*.#',
+ '#...#...,...#..^..D#',
+ '####################']},
+ { name:'El río de flechas', theme:'pintura',
+   say:'Las flechas también llevan las piedras. ¡Haced una torre de piedras en la flecha!',
+   hint:'Pista: cada piedra baja por la flecha hasta chocar con la anterior. La tercera se queda al lado del río.',
+   map:[
+ '####################',
+ '#1...#.....,#......#',
+ '#2...#.R...,#..*...#',
+ '#....#.....,#......#',
+ '#.T..%..R..,~..*...#',
+ '#....#.....,~......#',
+ '#.*..#.R...,#......#',
+ '#....#......#..*...#',
+ '#....#..*...#.....D#',
  '####################']},
  { name:'La cueva de cristal', theme:'cueva', paint:1,
-   say:'¡La última cueva! Aquí hay de todo: botones, hielo, ríos y un solo bote de pintura.',
-   hint:'Pista: la piedra del hielo puede tapar el primer río. ¡Guardad la pintura para el segundo!',
+   say:'Un cristal, un río y un solo bote de pintura. ¡Y en algún sitio brilla una estrella dorada!',
+   hint:'Pista: lanzad magia al cristal por la ventana de agua. Antes de cruzar el río, volved a darle.',
    map:[
  '####################',
- '#1....#iiiiii~.n~..#',
- '#2....#iiiiii=..~.*#',
- '#.....#iiriii~..~..#',
- '#..R..Xiiiiii~*.~..#',
- '#.....#iiiiii~..=..#',
- '#.....#iiiiii~..~.D#',
- '#..x..#iiiiii~..~..#',
- '#.*T..#iiiiii~*.~.n#',
+ '#1..#.......~~.#..$#',
+ '#2..#..R....~~.%...#',
+ '#...[.......==.#####',
+ '#.T.#.......~~.....#',
+ '#...~..s....~~..*..#',
+ '#.*.#.......~~.....#',
+ '#...#..R....~~.~~]~#',
+ '#...#....*..~~.~~.D#',
  '####################']},
+ { name:'El laberinto de hielo', theme:'cueva',
+   say:'Hielo y flechas. ¡Una flecha puede girar una piedra que resbala!',
+   hint:'Pista: una piedra tiene que bajar por la columna de la flecha. La flecha la lleva hasta el botón.',
+   map:[
+ '####################',
+ '#1..#iiiiiiiiii#...#',
+ '#2..#iiriii#iii#.k.#',
+ '#...#iiiiiiiiii#...#',
+ '#.T.%iiiiiiiiiiG...#',
+ '#...#Qiiii<iiii#####',
+ '#.*.#iiiiiiirii#..D#',
+ '#...#iiiiiiiiiiK...#',
+ '#...#iiiiiiiiiQ#...#',
+ '####################']},
+ { name:'El corazón de la cueva', theme:'cueva', paint:1,
+   say:'¡El corazón de la cueva! Cristales, portales, un río y una llave.',
+   hint:'Pista: magia al cristal desde la ventana. El portal cruza el río. Antes de ir a la llave, cambiad otra vez las barreras.',
+   map:[
+ '####################',
+ '#1..#....~...#..*..#',
+ '#2..#.R..~.@.#.....#',
+ '#...#....~...]..k..#',
+ '#.T.[....=...#.....#',
+ '#...#....~...###K###',
+ '#...~..s.~.*.#.....#',
+ '#.*.#....~...#..R..#',
+ '#...#.@..~...#~~~.D#',
+ '####################']},
+ // ============================== MUNDO 5: EL CASTILLO DE LAS NUBES
+ { name:'Las torres de nubes', theme:'castillo',
+   say:'Torres con portales, botones de colores y un cristal. ¡Cada uno tendrá que ayudar al otro!',
+   hint:'Pista: uno pisa el botón azul mientras el otro cruza. El botón rojo de abajo abre el paso a la puerta.',
+   map:[
+ '####################',
+ '#1..#.....#......*.#',
+ '#2@.#..o..#........#',
+ '#...X..*..#........#',
+ '#.T.#.....O........#',
+ '#####..s..#####[####',
+ '#.x.#.....#........#',
+ '#...]..@..#..x...*.#',
+ '#.*.#.....X.......D#',
+ '####################']},
+ { name:'El puente arcoíris', theme:'castillo', paint:1,
+   say:'Un solo bote de pintura, una roca gigante y dos ríos. ¡Solo hay una manera!',
+   hint:'Pista: pintad el primer río. La roca gigante tapa medio río ancho y la piedrecita la otra mitad.',
+   map:[
+ '####################',
+ '#1....~....~~....*.#',
+ '#2....=..*.~~......#',
+ '#.....~.MM.~~..*...#',
+ '#..T..~.MM.~~......#',
+ '#.....~....~~...c..#',
+ '#..*..~....==......#',
+ '#.....~.R..~~...*..#',
+ '#.....~....~~.....D#',
+ '####################']},
+ { name:'Las nubes guardianas', theme:'castillo',
+   say:'Las nubes con casco guardan dos llaves. ¡Romped las paredes y abrid las dos cerraduras!',
+   hint:'Pista: la llave rosa está dentro de la columna rota. Abre la puerta rosa, y detrás está la llave dorada.',
+   map:[
+ '####################',
+ '#1..#..c...#...#.$.#',
+ '#2..#......#...%...#',
+ '#...#.###..#...#####',
+ '#.T.%.%j#..#c..K...#',
+ '#...#.###..#...#.*.#',
+ '#.*.#..c...J...#...#',
+ '#...#......#.c.#...#',
+ '#...#......#k..#..D#',
+ '####################']},
+ { name:'El laberinto del castillo', theme:'castillo',
+   say:'¡Un laberinto de piedras! Llevad cada piedra a su botón sin que se quede atascada.',
+   hint:'Pista: si una piedra se queda pegada a una pared, pulsad B para deshacer o mantened Y.',
+   map:[
+ '####################',
+ '#1..#.##.#....#....#',
+ '#2..#....R....#..*.#',
+ '#...#.#......##....#',
+ '#.T...#.......G....#',
+ '#...#........##.c..#',
+ '#...#R.#.##..##.*..#',
+ '#.*.#.........#....#',
+ '#...#Q.Q..#...#...D#',
+ '####################']},
+ { name:'La puerta del Nubarrón', theme:'castillo', paint:1,
+   say:'¡La puerta del castillo del Nubarrón! Aquí hay de todo. ¡Último esfuerzo!',
+   hint:'Pista: el cristal abre la salida. Pintad el río, poned una piedra en el botón de piedra y buscad la llave.',
+   map:[
+ '####################',
+ '#1..#...~~...#..k..#',
+ '#2..#.R.~~.R.#..c..#',
+ '#...#...==...#.....#',
+ '#.T.%...~~...X.....#',
+ '#...#.x.~~...###K###',
+ '#.s.#...~~.Q.#.....#',
+ '#...#...~~...G..*..#',
+ '#.*.[...~~...#....D#',
+ '####################']},
+
  { name:'El castillo de las nubes', theme:'castillo', boss:true,
-   say:'¡El Nubarrón tiene la última estrella! ¡Convertidlo en arcoíris!',
+   say:'¡El Nubarrón tiene la última estrella! Magia con A, golpe con X. ¡Convertidlo en arcoíris!',
    map:[
  '####################',
  '#1.................#',
@@ -184,7 +478,74 @@ const LEVELS = [
  '#.........H........#',
  '#..................#',
  '####################']},
+ // ============================== NIVELES SECRETOS (uno por mundo, se abren con la estrella dorada)
+ { name:'El jardín secreto', theme:'secreto',
+   say:'¡Un jardín secreto lleno de estrellas! Subid a las flechas y dejaos llevar.',
+   map:[
+ '####################',
+ '#1.*....*.....*....#',
+ '#2>>>>>>>>>>>>>>,..#',
+ '#.^............,.*.#',
+ '#.^..n...H...n.,...#',
+ '#*^............,...#',
+ '#.^<<<<<<<<<<<<<...#',
+ '#....*....*....*...#',
+ '#..T...........*..D#',
+ '####################']},
+ { name:'La pista de patinaje', theme:'hielo', iceStars:true,
+   say:'¡A patinar! Empujad las piedras por el hielo y coged todas las estrellas.',
+   map:[
+ '####################',
+ '#1.iiiiiiiiiiiiii.*#',
+ '#2.iriiii*iiiiiri..#',
+ '#..iiiiiiiiiiiiii..#',
+ '#..ii*iiiH#iiii*i..#',
+ '#T.iiiiiii#iiiiii..#',
+ '#..iiiiiiiiiiiiii.*#',
+ '#..iriiiii*iiiiri..#',
+ '#.*iiiiiiiiiiiiii.D#',
+ '####################']},
+ { name:'Los portales locos', theme:'templo',
+   say:'¡Portales por todas partes! ¿Adónde llevará cada uno?',
+   map:[
+ '####################',
+ '#1...#..*.#..*.#.*.#',
+ '#2...#....#....#...#',
+ '#..@.#.&..#..@.#...#',
+ '#....#....#....#.&.#',
+ '#T...#....#.c..#...#',
+ '#....#....#....#...#',
+ '#..*.#.*..#..*.#..D#',
+ '#....#.........#...#',
+ '####################']},
+ { name:'El arcoíris', theme:'pintura',
+   say:'¡Aquí la pintura no se acaba! Pintad todos los puentes que queráis.',
+   map:[
+ '####################',
+ '#1..~~~~~~~~~~~~~~.#',
+ '#2..=.*.=..*.=.*~*.#',
+ '#...~~~=~~~=~~~~=~.#',
+ '#.T.~.*.~.*.~.*.~..#',
+ '#...~~=~~~=~~~=~~~.#',
+ '#...=..*=.*..=*.=*.#',
+ '#...~~~~~~~~~~~~~~.#',
+ '#.................D#',
+ '####################']},
+ { name:'La sala del tesoro', theme:'castillo',
+   say:'¡La sala del tesoro del Nubarrón! Cuidado con las nubes con casco.',
+   map:[
+ '####################',
+ '#1..*....*....*...*#',
+ '#2.......c.........#',
+ '#..*..%%%%%%%%..*..#',
+ '#T....%.*.*H.%.....#',
+ '#..*..%.*.*..%..*..#',
+ '#.....%%%%%%%%.....#',
+ '#..*.c.......c..*..#',
+ '#.................D#',
+ '####################']},
 ];
+const MAIN = 30;
 
 const THEMES = {
   pradera: { g1:'#7bd35a', g2:'#6fc650', wall:'arbusto', water:'#3aa7e8', dark:'#3f8a2c' },
@@ -197,6 +558,7 @@ const THEMES = {
   templo:  { g1:'#e2d3ad', g2:'#d9c9a1', wall:'templo',  water:'#2fa3c9', dark:'#9a8a62' },
   pintura: { g1:'#a8e27c', g2:'#9dd771', wall:'arbusto', water:'#4fb0f0', dark:'#5b9a3a' },
   castillo:{ g1:'#ffe6f4', g2:'#fbdcef', wall:'nube',    water:'#9ad6ff', dark:'#d5a8d0' },
+  secreto: { g1:'#8f7be0', g2:'#8571d6', wall:'arbusto', water:'#5ab8ff', dark:'#4a3a8a' },
 };
 
 // ---------------------------------------------------------------- sonido
@@ -233,6 +595,14 @@ const SFX = {
   empty(){ tone(180,.08,'square',.05); },
   undo(){ tone(660,.1,'sine',.14,0,.6); tone(440,.14,'sine',.12,.08); },
   slide(){ tone(900,.35,'sine',.06,0,.4); },
+  hammer(){ tone(180,.18,'square',.1,0,.4); tone(1200,.08,'triangle',.08,.03); tone(90,.3,'sine',.12,0,.5); },
+  crack(){ tone(220,.25,'sawtooth',.08,0,.3); tone(140,.3,'square',.06,.05,.5); tone(600,.1,'triangle',.06,.02,.4); },
+  toggle(){ tone(1046,.12,'triangle',.12); tone(1568,.18,'triangle',.1,.08); tone(784,.2,'sine',.08,.16); },
+  tele(){ tone(400,.3,'sine',.1,0,3); tone(800,.25,'triangle',.06,.1,2); },
+  clonk(){ tone(900,.06,'square',.08); tone(600,.1,'square',.06,.04); },
+  key(){ tone(1319,.1,'triangle',.14); tone(1760,.16,'triangle',.12,.08); },
+  potion(){ [392,523,659,784,1047,1319].forEach((f,i)=>tone(f,.18,'sine',.12,i*.07)); },
+  gold(){ [784,988,1175,1568,1976].forEach((f,i)=>tone(f,.3,'triangle',.13,i*.1)); },
 };
 // música suave en bucle
 const MEL=[392,0,523,0,659,587,523,0,440,0,523,0,587,0,494,0, 392,0,523,0,659,0,784,659,698,0,587,0,523,0,0,0];
@@ -266,12 +636,13 @@ const tpl = s => s.replace(/\{D\}/g, NAMES.diego).replace(/\{S\}/g, NAMES.sofia)
 // ---------------------------------------------------------------- mandos
 // Cada "hueco" es un mando. Hueco 0 = flechas/Enter/espacio (+ Retroceso deshacer, R reiniciar)
 // hueco 1 = WASD + F (+ E deshacer, T reiniciar)
-function mkSrc(){ return { l:0,r:0,u:0,d:0, ax:0, ay:0, a:0, b:0, y:0, start:0 }; }
+function mkSrc(){ return { l:0,r:0,u:0,d:0, ax:0, ay:0, a:0, x:0, b:0, y:0, start:0 }; }
 const SRC = [ {kb:mkSrc(), app:mkSrc(), gp:mkSrc()}, {kb:mkSrc(), app:mkSrc(), gp:mkSrc()} ];
-const IN = [0,1].map(()=>({ x:0, y:0, a:false, aP:false, b:false, bP:false, hold:false, start:false, sP:false, l:false, r:false, u:false, d:false, lP:false, rP:false, uP:false, dP:false, seen:false, any:false }));
+const IN = [0,1].map(()=>({ x:0, y:0, a:false, aP:false, xb:false, xP:false, b:false, bP:false, hold:false, start:false, sP:false, l:false, r:false, u:false, d:false, lP:false, rP:false, uP:false, dP:false, seen:false, any:false }));
 
-const KEYS0 = { 37:'l', 39:'r', 38:'u', 40:'d', 13:'a', 32:'a', 8:'b', 85:'b', 82:'y' };
-const KEYS1 = { 65:'l', 68:'r', 87:'u', 83:'d', 70:'a', 71:'a', 81:'a', 69:'b', 84:'y' };
+// hueco 0: Enter/espacio = A (magia), Mayús/Ctrl/M = X (golpe)   hueco 1: F/Q = A, G/H = X
+const KEYS0 = { 37:'l', 39:'r', 38:'u', 40:'d', 13:'a', 32:'a', 16:'x', 17:'x', 77:'x', 8:'b', 85:'b', 82:'y' };
+const KEYS1 = { 65:'l', 68:'r', 87:'u', 83:'d', 70:'a', 81:'a', 71:'x', 72:'x', 69:'b', 84:'y' };
 addEventListener('keydown', e=>{
   audio();
   let k=KEYS0[e.keyCode], s=0;
@@ -286,7 +657,7 @@ addEventListener('keyup', e=>{
   if (k) SRC[s].kb[k]=0;
 });
 // la app de Android TV manda aquí cada mando por separado
-const BTN = { a:'a', x:'a', l1:'a', r1:'a', b:'b', y:'y', start:'start', up:'u', down:'d', left:'l', right:'r' };
+const BTN = { a:'a', x:'x', l1:'x', r1:'a', b:'b', y:'y', start:'start', up:'u', down:'d', left:'l', right:'r' };
 window.__pads = {
   key(slot, btn, down){ audio(); slot=slot?1:0; const k=BTN[btn]; if (k){ SRC[slot].app[k]=down?1:0; if (down) SRC[slot].app['_'+k]=1; } },
   axes(slot, x, y){ slot=slot?1:0; SRC[slot].app.ax=x; SRC[slot].app.ay=y; },
@@ -307,70 +678,84 @@ function readGamepads(){
     const b=i=>p.buttons[i]&&p.buttons[i].pressed?1:0;
     g.ax=p.axes[0]||0; g.ay=p.axes[1]||0;
     g.l=b(14); g.r=b(15); g.u=b(12); g.d=b(13);
-    g.a=b(0)|b(2)|b(4)|b(5)|b(7); g.b=b(1); g.y=b(3); g.start=b(9);
+    g.a=b(0)|b(5)|b(7); g.x=b(2)|b(4)|b(6); g.b=b(1); g.y=b(3); g.start=b(9);
   }
 }
 function updateInput(){
   readGamepads();
   for (let s=0;s<2;s++){
     const I=IN[s], S=SRC[s];
-    let x=0,y=0,a=0,bb=0,yy=0,st=0,l=0,r=0,u=0,d=0;
+    let x=0,y=0,a=0,xx=0,bb=0,yy=0,st=0,l=0,r=0,u=0,d=0;
     for (const src of [S.kb,S.app,S.gp]){
       let ax=src.ax, ay=src.ay; const m=Math.hypot(ax,ay);
       if (m<0.3){ ax=0; ay=0; } else { const k=Math.min(1,(m-0.3)/0.6)/m; ax*=k; ay*=k; }
       x+=ax+(src.r-src.l); y+=ay+(src.d-src.u);
       // una pulsación muy corta (bajar y subir en el mismo instante) también cuenta
-      a|=src.a|(src._a||0); bb|=src.b|(src._b||0); yy|=src.y; st|=src.start|(src._start||0);
+      a|=src.a|(src._a||0); xx|=src.x|(src._x||0); bb|=src.b|(src._b||0); yy|=src.y; st|=src.start|(src._start||0);
       l|=src.l||src._l||src.ax<-0.6; r|=src.r||src._r||src.ax>0.6; u|=src.u||src._u||src.ay<-0.6; d|=src.d||src._d||src.ay>0.6;
-      src._a=src._b=src._start=src._l=src._r=src._u=src._d=0;
+      src._a=src._x=src._b=src._start=src._l=src._r=src._u=src._d=0;
     }
     const m=Math.hypot(x,y); if (m>1){ x/=m; y/=m; }
-    I.aP = a && !I.a; I.bP = bb && !I.b; I.sP = st && !I.start;
+    I.aP = a && !I.a; I.xP = xx && !I.xb; I.bP = bb && !I.b; I.sP = st && !I.start;
     I.lP = l && !I.l; I.rP = r && !I.r; I.uP = u && !I.u; I.dP = d && !I.d;
-    I.x=x; I.y=y; I.a=!!a; I.b=!!bb; I.hold=!!yy; I.start=!!st; I.l=!!l; I.r=!!r; I.u=!!u; I.d=!!d;
-    I.any = I.aP||I.lP||I.rP||I.uP||I.dP||I.sP;
+    I.x=x; I.y=y; I.a=!!a; I.xb=!!xx; I.b=!!bb; I.hold=!!yy; I.start=!!st; I.l=!!l; I.r=!!r; I.u=!!u; I.d=!!d;
+    I.any = I.aP||I.xP||I.lP||I.rP||I.uP||I.dP||I.sP;
     if (I.any) I.seen=true;
   }
 }
 // ---------------------------------------------------------------- estado
-let state='title';   // title, story, train, play, pause, clear, end
+let state='title';   // title, story, map, train, play, pause, clear, end
 let charOf = ['diego','sofia'];          // qué personaje lleva cada mando
 let active = [false,false];
-let maxLevel = 1; try{ maxLevel = Math.max(1, Math.min(LEVELS.length, +localStorage.getItem('aventura.max')||1)); }catch(e){}
-let pickLevel = 1;
+// progreso guardado en la tele: hasta qué nivel han llegado, estrellas doradas y secretos superados
+const SAVE='aventura2';
+let prog={max:1, gold:[], done:[], story:false};
+try{ const o=JSON.parse(localStorage.getItem(SAVE)||'null'); if (o) prog=Object.assign(prog,o); }catch(e){}
+prog.max=clamp(prog.max|0,1,MAIN);
+function saveProg(){ try{ localStorage.setItem(SAVE, JSON.stringify(prog)); }catch(e){} }
+let mapSel = prog.max-1;
 let levelIdx=0, L=null, grid=[], theme=null;
-let players=[], clouds=[], items=[], bolts=[], waves=[], parts=[], flowers=[], rocks=[], plates=[], gates=[], bridgeSpots=[];
+let players=[], clouds=[], items=[], keys=[], bolts=[], waves=[], parts=[], flowers=[], rocks=[], plates=[], gates=[], bridgeSpots=[], switches=[], pads=[];
 let door=null, tito=null, boss=null, bigStar=null;
 let starsTotal=0, starsGot=0, doorOpen=false, gatesOpen=false;
 let bubbleTimer=0, speech=null, stateT=0, storyPage=0, hintBubbles=[];
 let staticLayer=null, staticDirty=true;
 let underMap={}, undoStack=[], paintLeft=Infinity, colorOpen={x:0,o:0}, colorEver={x:false,o:false};
-let restartT=0, idleT=0, ambient=[], waterTiles=[];
+let restartT=0, idleT=0, ambient=[], waterTiles=[], swState=0, pendingDown=new Set(), goldGot=false;
 
+const worldOf = i => i<MAIN ? Math.floor(i/6) : i-MAIN;
 function tile(c,r){ return (r<0||r>=ROWS||c<0||c>=COLS) ? '#' : grid[r][c]; }
 function setTile(c,r,ch){ grid[r][c]=ch; staticDirty=true; }
 const cx=c=>c*TS+TS/2, cy=r=>TOP+r*TS+TS/2;
+const ARROW_DIR={'>':[1,0],'<':[-1,0],'^':[0,-1],',':[0,1]};
+const isArrow = ch => !!ARROW_DIR[ch];
+const isPad = ch => ch==='@'||ch==='&';
+function raised(c,r){ const ch=tile(c,r); const up = ch==='[' ? swState===0 : ch===']' ? swState===1 : false; return up && !pendingDown.has(c+','+r); }
 
 function loadLevel(i, quiet){
   levelIdx=i; L=LEVELS[i]; theme=THEMES[L.theme];
   grid=L.map.map(row=>row.split(''));
-  clouds=[]; items=[]; bolts=[]; waves=[]; parts=[]; flowers=[]; rocks=[]; plates=[]; gates=[]; bridgeSpots=[]; hintBubbles=[];
-  door=null; tito=null; boss=null; bigStar=null; doorOpen=false; gatesOpen=false; bubbleTimer=0;
+  clouds=[]; items=[]; keys=[]; bolts=[]; waves=[]; parts=[]; flowers=[]; rocks=[]; plates=[]; gates=[]; bridgeSpots=[]; hintBubbles=[]; switches=[]; pads=[];
+  door=null; tito=null; boss=null; bigStar=null; doorOpen=false; gatesOpen=false; bubbleTimer=0; goldGot=false;
   underMap={}; undoStack=[]; paintLeft = L.paint!=null ? L.paint : Infinity;
-  colorOpen={x:0,o:0}; colorEver={x:false,o:false}; restartT=0; idleT=0; ambient=[];
+  colorOpen={x:0,o:0}; colorEver={x:false,o:false}; restartT=0; idleT=0; ambient=[]; swState=0; pendingDown=new Set();
   const starts=[];
   for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++){
     const ch=grid[r][c], x=cx(c), y=cy(r);
     if (ch==='1'||ch==='2'){ starts[+ch-1]={x,y}; grid[r][c]='.'; }
     else if (ch==='*'){ items.push({type:'star',x,y,ph:Math.random()*6}); grid[r][c]= L.iceStars && (tile(c-1,r)==='i'||tile(c+1,r)==='i') ? 'i' : '.'; }
+    else if (ch==='$'){ items.push({type:'gold',x,y,ph:0}); grid[r][c]='.'; }
     else if (ch==='H'){ items.push({type:'heart',x,y,ph:Math.random()*6}); grid[r][c]='.'; }
-    else if (ch==='n'||ch==='h'||ch==='v'){
+    else if (ch==='p'){ items.push({type:'potion',x,y,ph:0}); grid[r][c]='.'; }
+    else if (ch==='m'){ items.push({type:'hammer',x,y,ph:0}); grid[r][c]='.'; }
+    else if (ch==='k'||ch==='j'){ keys.push({col:ch,x,y,ph:Math.random()*6,got:false}); grid[r][c]='.'; }
+    else if (ch==='n'||ch==='h'||ch==='v'||ch==='c'){
       const a=Math.random()*Math.PI*2;
-      clouds.push({x,y,mode:ch, vx: ch==='h'?90:ch==='v'?0:Math.cos(a)*70, vy: ch==='v'?90:ch==='h'?0:Math.sin(a)*70, t:rand(1,3), ph:Math.random()*6});
+      clouds.push({x,y,mode:ch==='c'?'n':ch, helmet:ch==='c', vx: ch==='h'?90:ch==='v'?0:Math.cos(a)*70, vy: ch==='v'?90:ch==='h'?0:Math.sin(a)*70, t:rand(1,3), ph:Math.random()*6});
       grid[r][c]='.';
     }
     else if (ch==='T'){ tito={x,y,ph:0}; grid[r][c]='.'; }
-    else if (ch==='B'){ boss={x,y,vx:110,vy:70,hp:14,max:14,flash:0,spawn:3,ph:0,r:78}; grid[r][c]='.'; }
+    else if (ch==='B'){ boss={x,y,vx:110,vy:70,hp:20,max:20,flash:0,spawn:3,ph:0,r:78,shield:0,shieldT:8}; grid[r][c]='.'; }
     else if (ch==='R'||ch==='r'){ rocks.push({c,r,w:1,ox:0,oy:0}); underMap[c+','+r]= ch==='r'?'i':'.'; grid[r][c]='R'; }
     else if (ch==='M' && !underMap[c+','+r]){
       rocks.push({c,r,w:2,ox:0,oy:0});
@@ -379,6 +764,8 @@ function loadLevel(i, quiet){
     else if (ch==='P'||ch==='Q'||ch==='x'||ch==='o'){ plates.push({c,r,kind:ch,on:false}); }
     else if (ch==='G'||ch==='X'||ch==='O'){ gates.push({c,r,kind:ch,open:0}); }
     else if (ch==='='){ bridgeSpots.push({c,r}); }
+    else if (ch==='s'){ switches.push({c,r,cd:0,flash:0}); }
+    else if (isPad(ch)){ pads.push({c,r,ch}); }
     else if (ch==='D'){ door={c,r,x,y,anim:0}; }
   }
   waterTiles=[]; for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++) if ('~='.includes(grid[r][c])) waterTiles.push({c,r,ph:Math.random()*6});
@@ -391,22 +778,25 @@ function loadLevel(i, quiet){
 }
 function addPlayer(slot, pos){
   const who=charOf[slot];
-  players.push({ slot, who, x:pos.x, y:pos.y, kx:0, ky:0, fx:1, fy:0, face:1, hearts:5, inv:1.5, bubble:false,
-    cd:0, walk:0, moving:false, pushT:0, pushDir:null, pushing:null, bonk:0, ammo:AMMO_MAX, ammoT:0 });
+  const p={ slot, who, x:pos.x, y:pos.y, kx:0, ky:0, fx:1, fy:0, face:1, hearts:5, inv:1.5, bubble:false,
+    cd:0, walk:0, moving:false, pushT:0, pushDir:null, pushing:null, bonk:0, ammo:AMMO_MAX, ammoT:0, key:null, tpLock:null, swing:0 };
+  // niveles 1 y 2: cada uno con lo suyo (Diego el golpe, Sofía la magia). Luego, los dos tienen las dos cosas.
+  p.magic = !L.basic || who==='sofia';
+  p.golpe = !L.basic || who==='diego';
+  players.push(p);
 }
 // disparos: 2 cargas, se recupera 1 cada 1,5 s (2 cada 3 s)
 const AMMO_MAX=2, AMMO_TIME=1.5;
 const solo = ()=>players.length<2;
-const canPush = p => p.who==='diego' || solo();
-const canPaint = p => p.who==='sofia' || solo();
 const colorClosed = ch => (ch==='X' && colorOpen.x<0.5) || (ch==='O' && colorOpen.o<0.5);
 
-function solidForPlayer(ch){ return ch==='#'||ch==='~'||ch==='='||ch==='R'||ch==='M'||ch==='G'||colorClosed(ch)||(ch==='D'&&!doorOpen); }
-function solidForCloud(ch){ return ch==='#'||ch==='R'||ch==='M'||ch==='G'||ch==='X'||ch==='O'||ch==='D'; }
+function solidForPlayer(ch,c,r){ return ch==='#'||ch==='%'||ch==='~'||ch==='='||ch==='R'||ch==='M'||ch==='G'||ch==='K'||ch==='J'||ch==='s'||colorClosed(ch)||(ch==='D'&&!doorOpen)||((ch==='['||ch===']')&&raised(c,r)); }
+function solidForCloud(ch,c,r){ return ch==='#'||ch==='%'||ch==='R'||ch==='M'||ch==='G'||ch==='X'||ch==='O'||ch==='D'||ch==='K'||ch==='J'||ch==='s'||((ch==='['||ch===']')&&raised(c,r)); }
+function solidForBolt(ch,c,r){ return ch==='#'||ch==='%'||ch==='R'||ch==='M'||ch==='G'||ch==='K'||ch==='J'||colorClosed(ch)||(ch==='D'&&!doorOpen)||((ch==='['||ch===']')&&raised(c,r)); }
 function boxHit(x,y,h,sf){
   const c0=Math.floor((x-h)/TS), c1=Math.floor((x+h-0.01)/TS);
   const r0=Math.floor((y-TOP-h)/TS), r1=Math.floor((y-TOP+h-0.01)/TS);
-  for (let r=r0;r<=r1;r++) for (let c=c0;c<=c1;c++) if (sf(tile(c,r))) return {c,r};
+  for (let r=r0;r<=r1;r++) for (let c=c0;c<=c1;c++) if (sf(tile(c,r),c,r)) return {c,r};
   return null;
 }
 // mueve una caja con deslizamiento por las esquinas (para que no se atasquen)
@@ -440,13 +830,15 @@ function burst(x,y,colors,n=14,sp=200,life=0.8,size=5){
 }
 const RAINBOW=['#ff5a5a','#ffa53a','#ffe14a','#5ad66a','#4aa8ff','#a06bff'];
 const FLOWER_C=['#ff6fa8','#ffd23f','#ff8a3d','#c77dff','#5ec8ff','#ff5e5e'];
+const KEY_C={k:['#ffd23f','#b8860b'], j:['#ff7ad0','#b0307e']};
 
 function hint(x,y,who){ if (!hintBubbles.some(b=>b.who===who && b.t>0)) hintBubbles.push({x,y,who,t:2.2}); }
+function talk(t,d=3.5){ speech={text:t,t:d}; say(t); }
 
 // ---------------------------------------------------------------- piedras
 function rockAt(c,r){ return rocks.find(k=>c>=k.c && c<k.c+k.w && r>=k.r && r<k.r+k.w); }
 function rockTiles(k){ const a=[]; for (let dy=0;dy<k.w;dy++) for (let dx=0;dx<k.w;dx++) a.push([k.c+dx,k.r+dy]); return a; }
-const ROCK_FLOOR=new Set(['.','b','f','P','Q','x','o','i']);
+const ROCK_FLOOR=new Set(['.','b','f','P','Q','x','o','i','>','<','^',',']);
 const ROCK_WATER=new Set(['~','=']);
 function playerOnTile(c,r){ return players.some(q=>Math.abs(q.x-cx(c))<TS/2+18 && Math.abs(q.y-cy(r))<TS/2+18); }
 function stepRock(k,dc,dr){
@@ -474,7 +866,7 @@ const onIce = k => rockTiles(k).every(([c,r])=>underMap[c+','+r]==='i');
 function snapshot(){
   undoStack.push({ grid:grid.map(r=>r.slice()), rocks:rocks.map(k=>({c:k.c,r:k.r,w:k.w,ox:0,oy:0})), under:{...underMap},
     bridge:bridgeSpots.map(s=>({...s})), water:waterTiles.map(s=>({...s})), paint:paintLeft, gatesOpen, gates:gates.map(g=>g.open),
-    pos:players.map(p=>({x:p.x,y:p.y})) });
+    pos:players.map(p=>({x:p.x,y:p.y,key:p.key})), keys:keys.map(k=>k.got), sw:swState });
   if (undoStack.length>60) undoStack.shift();
 }
 function undo(){
@@ -482,21 +874,29 @@ function undo(){
   if (!s){ SFX.hurt(); return; }
   grid=s.grid; rocks=s.rocks; underMap=s.under; bridgeSpots=s.bridge; waterTiles=s.water; paintLeft=s.paint; gatesOpen=s.gatesOpen;
   gates.forEach((g,i)=>g.open=s.gates[i]);
-  players.forEach((p,i)=>{ if (s.pos[i]){ p.x=s.pos[i].x; p.y=s.pos[i].y; p.kx=p.ky=0; } });
+  keys.forEach((k,i)=>k.got=s.keys[i]); swState=s.sw; pendingDown=new Set();
+  players.forEach((p,i)=>{ if (s.pos[i]){ p.x=s.pos[i].x; p.y=s.pos[i].y; p.key=s.pos[i].key; p.kx=p.ky=0; p.tpLock=null; } });
   staticDirty=true; SFX.undo();
   for (const p of players) burst(p.x,p.y-30,['#ffffff','#bfe6ff'],10,150,.5,4);
 }
 function tryPush(k, dc, dr){
   snapshot();
-  let steps=0, res;
-  do { res=stepRock(k,dc,dr); if (res) steps++; } while (res==='move' && onIce(k) && steps<20);
+  let steps=0, res, dir=[dc,dr], mx=0, my=0;
+  while (steps<30){
+    res=stepRock(k,dir[0],dir[1]); if (!res) break;
+    steps++; mx+=dir[0]; my+=dir[1];
+    if (res!=='move') break;
+    const u = k.w===1 ? underMap[k.c+','+k.r] : null;
+    if (u && ARROW_DIR[u]) dir=ARROW_DIR[u];       // las flechas llevan la piedra
+    else if (!onIce(k)) break;                     // en el hielo resbala
+  }
   if (!steps){ undoStack.pop(); return false; }
   idleT=0;
   if (res==='sink' || !rocks.includes(k)) SFX.splash();
   else {
-    k.ox=-dc*TS*(steps); k.oy=-dr*TS*(steps); SFX.push();
+    k.ox=-mx*TS; k.oy=-my*TS; SFX.push();
     if (steps>1) SFX.slide();
-    burst(cx(k.c)-dc*TS/2, cy(k.r)-dr*TS/2, ['#c9b38a','#a8916a'], 6, 80, .4, 4);
+    burst(cx(k.c)-dir[0]*TS/2, cy(k.r)-dir[1]*TS/2, ['#c9b38a','#a8916a'], 6, 80, .4, 4);
   }
   return true;
 }
@@ -504,7 +904,7 @@ function tryPaint(p){
   let best=null, bd=1e9;
   for (const s of bridgeSpots){ const d=Math.hypot(cx(s.c)-p.x, cy(s.r)-p.y); if (d<bd){ bd=d; best=s; } }
   if (!best || bd>TS*1.6) return false;
-  if (paintLeft<=0){ SFX.hurt(); const t='¡No queda pintura!'; speech={text:t,t:2.5}; say(t); return true; }
+  if (paintLeft<=0){ SFX.hurt(); talk('¡No queda pintura!',2.5); return true; }
   snapshot();
   const q=[best], seen=new Set();
   while (q.length){ const s=q.pop(), k=s.c+','+s.r; if (seen.has(k)) continue; seen.add(k);
@@ -515,21 +915,40 @@ function tryPaint(p){
   paintLeft--; idleT=0;
   SFX.paint(); return true;
 }
-function nearBridge(p){ return bridgeSpots.some(s=>Math.hypot(cx(s.c)-p.x, cy(s.r)-p.y) < TS*1.6); }
+// ---------------------------------------------------------------- cosas nuevas: cristales, paredes agrietadas, llaves
+function toggleSwitch(sw){
+  if (sw.cd>0) return;
+  sw.cd=0.6; sw.flash=0.5; snapshot(); swState^=1; idleT=0;
+  // si un niño está encima de una barrera que sube, espera a que se aparte
+  for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++){ const ch=grid[r][c];
+    if ((ch==='['||ch===']') && playerOnTile(c,r)) pendingDown.add(c+','+r); }
+  SFX.toggle(); burst(cx(sw.c),cy(sw.r)-10,['#7ef0ff','#ffffff','#d48cff'],18,200,.7,5);
+}
+function breakWall(c,r){
+  setTile(c,r,'.'); SFX.crack(); idleT=0;
+  burst(cx(c),cy(r),['#a3a6ad','#7b7d84','#cfd2d6','#c9b38a'],22,260,.8,7);
+}
+function openLock(p,c,r){
+  snapshot();
+  setTile(c,r,'.'); p.key=null; SFX.open(); idleT=0;
+  burst(cx(c),cy(r),KEY_C[tile(c,r)==='J'?'j':'k'].concat(['#ffffff']),22,240,.8,6);
+}
 
-function action(p){
+function action(p, btn){
   if (p.cd>0) return;
-  if (canPaint(p) && tryPaint(p)){ p.cd=0.4; return; }
+  if (btn==='a' && tryPaint(p)){ p.cd=0.4; return; }
+  if (!p.magic && !p.golpe) return;
+  const kind = btn==='a' ? (p.magic?'magic':'golpe') : (p.golpe?'golpe':'magic');
   if (p.ammo<=0){ p.cd=0.25; SFX.empty(); return; }
   p.ammo--;
-  if (p.who==='sofia'){
+  if (kind==='magic'){
     const m=Math.hypot(p.fx,p.fy)||1;
-    bolts.push({x:p.x+p.fx/m*24, y:p.y-18+p.fy/m*24, vx:p.fx/m*620, vy:p.fy/m*620, life:0.55});
+    bolts.push({who:p.who, x:p.x+p.fx/m*24, y:p.y-18+p.fy/m*24, vx:p.fx/m*620, vy:p.fy/m*620, life:0.6});
     p.cd=0.28; SFX.bolt();
   } else {
-    waves.push({x:p.x,y:p.y-10,r:20,life:0.35,max:0.35,hit:new Set()});
-    p.cd=0.55; p.bonk=0.3; SFX.roar();
-    if (nearBridge(p) && !solo()) hint(p.x, p.y-90, 'sofia');
+    waves.push({who:p.who, x:p.x, y:p.y-10, ox:p.x, oy:p.y, r:20, life:0.35, max:0.35, hit:new Set()});
+    p.cd=0.55; p.bonk=0.3; p.swing=0.3;
+    if (p.who==='diego') SFX.roar(); else SFX.hammer();
   }
 }
 function cloudToFlower(c){
@@ -545,7 +964,7 @@ function hurt(p, fromX, fromY){
   if (p.hearts<=0){
     p.bubble=true; p.hearts=0; SFX.bubble();
     const o=players.find(q=>q!==p && !q.bubble);
-    if (o){ const t=`¡${NAMES[o.who]}, rescata a ${NAMES[p.who]}!`; speech={text:t,t:4}; say(t); }
+    if (o) talk(`¡${NAMES[o.who]}, rescata a ${NAMES[p.who]}!`,4);
   }
 }
 
@@ -558,25 +977,28 @@ function update(dt){
   parts=parts.filter(pt=>pt.life>0);
 
   if (state==='title') return updateTitle(dt);
-  if (state==='story'){ if (IN.some(I=>I.aP) && stateT>0.5){ storyPage++; stateT=0; if (storyPage>=STORY.length) startTrain(); else say(tpl(STORY[storyPage])); } return; }
+  if (state==='map') return updateMap(dt);
+  if (state==='story'){ if (IN.some(I=>I.aP) && stateT>0.5){ storyPage++; stateT=0; if (storyPage>=STORY.length){ prog.story=true; saveProg(); levelIdx=0; startTrain(); } else say(tpl(STORY[storyPage])); } return; }
   if (state==='train'){ if (stateT>3.6 || (stateT>1.2 && IN.some(I=>I.aP))){ state='play'; stateT=0; loadLevel(levelIdx); } return; }
-  if (state==='pause'){ if (IN.some(I=>I.aP||I.sP)){ state='play'; } return; }
-  if (state==='clear'){ if (stateT>3.2){ if (levelIdx+1<LEVELS.length){ levelIdx++; startTrain(); } else { state='end'; stateT=0; SFX.win(); say(`¡Gracias, ${NAMES.diego} y ${NAMES.sofia}! Las estrellas vuelven a brillar.`); } } updatePlay(dt,true); return; }
-  if (state==='end'){ if (stateT>4 && IN.some(I=>I.aP)){ state='title'; stateT=0; } if (Math.random()<dt*3) burst(rand(100,1180),rand(80,400),RAINBOW,24,260,1.2,5); return; }
+  if (state==='pause'){ if (IN.some(I=>I.aP||I.sP)){ state='play'; } if (IN.some(I=>I.bP)){ goMap(); } return; }
+  if (state==='clear'){
+    if (stateT>3.2){
+      if (L.boss){ state='end'; stateT=0; SFX.win(); say(`¡Gracias, ${NAMES.diego} y ${NAMES.sofia}! Las estrellas vuelven a brillar.`); }
+      else goMap();
+    }
+    updatePlay(dt,true); return; }
+  if (state==='end'){ if (stateT>4 && IN.some(I=>I.aP)) goMap(); if (Math.random()<dt*3) burst(rand(100,1180),rand(80,400),RAINBOW,24,260,1.2,5); return; }
   if (state==='play') updatePlay(dt,false);
 }
 
 function updateTitle(dt){
   for (let s=0;s<2;s++){ if (IN[s].any) active[s]=true; }
   if (IN.some(I=>I.lP||I.rP)){ charOf=[charOf[1],charOf[0]]; SFX.pop(); }
-  if (IN.some(I=>I.uP)) { pickLevel=Math.min(maxLevel,pickLevel+1); SFX.star(); }
-  if (IN.some(I=>I.dP)) { pickLevel=Math.max(1,pickLevel-1); SFX.star(); }
   if (stateT>0.6 && IN.some(I=>I.aP)){
     audio();
     if (!active[0]&&!active[1]) active[0]=true;
-    levelIdx=pickLevel-1;
-    if (levelIdx===0){ state='story'; storyPage=0; stateT=0; say(tpl(STORY[0])); }
-    else startTrain();
+    if (!prog.story && prog.max===1){ state='story'; storyPage=0; stateT=0; say(tpl(STORY[0])); }
+    else goMap();
   }
 }
 const STORY=[
@@ -585,8 +1007,40 @@ const STORY=[
 ];
 function startTrain(){ state='train'; stateT=0; say(LEVELS[levelIdx].name); }
 
+// ---------------------------------------------------------------- mapa
+const WORLDS=['La pradera','La montaña de hielo','El templo','El valle de los colores','El castillo de las nubes'];
+const MAP_ORDER=[]; for (let w=0;w<5;w++){ for (let j=0;j<6;j++) MAP_ORDER.push(w*6+j); MAP_ORDER.push(MAIN+w); }
+const unlocked = i => i<MAIN ? i<prog.max : prog.gold.includes(i-MAIN);
+const finished = i => i<MAIN ? i<prog.max-1 || (i===MAIN-1 && prog.won) : prog.done.includes(i-MAIN);
+function mapPos(i){
+  if (i>=MAIN) return { x:1172, y:134+(i-MAIN)*106 };
+  const w=Math.floor(i/6), j=i%6;
+  return { x:160+j*168, y:134+w*106 };
+}
+function goMap(){
+  state='map'; stateT=0; speech=null;
+  if (!unlocked(mapSel)) mapSel=prog.max-1;
+  try{ speechSynthesis.cancel(); }catch(e){}
+}
+function updateMap(dt){
+  for (let s=0;s<2;s++){ if (IN[s].any) active[s]=true; }
+  const k=MAP_ORDER.indexOf(mapSel);
+  const move=(d)=>{ let j=k; do { j+=d; } while (j>=0 && j<MAP_ORDER.length && !unlocked(MAP_ORDER[j])); if (j>=0 && j<MAP_ORDER.length){ mapSel=MAP_ORDER[j]; SFX.star(); } };
+  if (IN.some(I=>I.rP)) move(1);
+  if (IN.some(I=>I.lP)) move(-1);
+  if (IN.some(I=>I.dP||I.uP)){
+    const d=IN.some(I=>I.dP)?1:-1, w=worldOf(mapSel)+d, col = mapSel<MAIN ? mapSel%6 : 6;
+    if (w>=0 && w<5){ let t = col<6 ? w*6+col : MAIN+w; if (!unlocked(t)) t = w*6+Math.min(5,col); while (t>w*6 && !unlocked(t)) t--; if (unlocked(t)){ mapSel=t; SFX.star(); } }
+  }
+  if (stateT>0.5 && IN.some(I=>I.bP||I.sP)){ state='title'; stateT=0; return; }
+  if (stateT>0.5 && IN.some(I=>I.aP)){
+    if (!active[0]&&!active[1]) active[0]=true;
+    levelIdx=mapSel; startTrain();
+  }
+}
+
 function updateAmbient(dt){
-  const kind = {pradera:'mariposa',pintura:'petalo',bosque:'luciernaga',rio:'mariposa',charcos:'mariposa',nieve:'nieve',hielo:'nieve',cueva:'brillo',templo:'hoja',castillo:'estrellita'}[L.theme];
+  const kind = {pradera:'mariposa',pintura:'petalo',bosque:'luciernaga',rio:'mariposa',charcos:'mariposa',nieve:'nieve',hielo:'nieve',cueva:'brillo',templo:'hoja',castillo:'estrellita',secreto:'estrellita'}[L.theme];
   const max = LOWPOWER ? 12 : 24;
   if (ambient.length<max && Math.random()<dt*6){
     const a={kind, x:rand(0,W), y:rand(TOP,H), vx:rand(-20,20), vy:rand(-10,10), ph:Math.random()*6, life:rand(5,10), c:FLOWER_C[(Math.random()*6)|0]};
@@ -603,10 +1057,13 @@ function updatePlay(dt, frozen){
   updateAmbient(dt);
   for (const w of waterTiles) w.ph+=dt;
   if (!frozen) for (let s=0;s<2;s++){
-    if (!active[s] && IN[s].aP){
+    if (!active[s] && (IN[s].aP||IN[s].xP)){
       active[s]=true; const o=players[0];
       addPlayer(s, o?{x:o.x,y:o.y}:{x:cx(1),y:cy(1)}); SFX.pop();
-      burst(players[players.length-1].x, players[players.length-1].y-30, RAINBOW, 20, 220, .8, 5);
+      const np=players[players.length-1];
+      // si se une a mitad del nivel, trae lo que ya tenga su compañero
+      if (o){ np.magic=np.magic||o.magic; np.golpe=np.golpe||o.golpe; }
+      burst(np.x, np.y-30, RAINBOW, 20, 220, .8, 5);
     }
   }
   if (!frozen && IN.some(I=>I.sP)){ state='pause'; return; }
@@ -615,27 +1072,35 @@ function updatePlay(dt, frozen){
     if (players.some(p=>IN[p.slot].bP)) undo();
     if (players.some(p=>IN[p.slot].hold)){
       restartT+=dt;
-      if (restartT>1.8){ restartT=0; const sv=active.slice(); loadLevel(levelIdx,true); SFX.open(); const tx='¡Otra vez desde el principio!'; speech={text:tx,t:2.5}; say(tx); return; }
+      if (restartT>1.8){ restartT=0; loadLevel(levelIdx,true); SFX.open(); talk('¡Otra vez desde el principio!',2.5); return; }
     } else restartT=Math.max(0,restartT-dt*3);
   }
   // pista de Tito si llevan rato sin avanzar
-  if (!frozen && L.hint){ idleT+=dt; if (idleT>45){ idleT=0; const tx=tpl(L.hint); speech={text:tx,t:7}; say(tx); } }
+  if (!frozen && L.hint){ idleT+=dt; if (idleT>45){ idleT=0; talk(tpl(L.hint),7); } }
 
   // jugadores
   for (const p of players){
     const I=IN[p.slot];
-    p.cd-=dt; p.inv-=dt; p.bonk-=dt;
+    p.cd-=dt; p.inv-=dt; p.bonk-=dt; p.swing-=dt;
     if (p.ammo<AMMO_MAX){ p.ammoT+=dt; if (p.ammoT>=AMMO_TIME){ p.ammo++; p.ammoT=0; } } else p.ammoT=0;
     const mx=frozen?0:I.x, my=frozen?0:I.y;
     const sp = p.bubble ? 90 : (p.who==='diego' ? 250 : 240);
     p.moving = Math.hypot(mx,my)>0.15;
     if (p.moving){ p.fx=mx; p.fy=my; if (Math.abs(mx)>0.2) p.face=Math.sign(mx); p.walk+=dt*(p.who==='diego'?14:10); }
     let dx=mx*sp*dt + p.kx*dt, dy=my*sp*dt + p.ky*dt;
+    // flechas del suelo: empujan más fuerte de lo que se anda, así solo se pueden cruzar en su sentido
+    const under=tile(Math.floor(p.x/TS), Math.floor((p.y-TOP)/TS));
+    if (isArrow(under) && !frozen){ const [ax,ay]=ARROW_DIR[under]; dx+=ax*300*dt; dy+=ay*300*dt; }
     p.kx*=Math.pow(0.002,dt); p.ky*=Math.pow(0.002,dt);
     if (p.bubble){ dy+=Math.sin(t*2+p.slot)*12*dt; }
     const hit=moveBox(p, dx, dy, 20, solidForPlayer);
-    // empujar rocas
     const ch = hit ? tile(hit.c,hit.r) : '';
+    // cerraduras: se abren al tocarlas con la llave de su color
+    if (hit && !p.bubble && (ch==='K'||ch==='J')){
+      if (p.key===ch.toLowerCase()) openLock(p,hit.c,hit.r);
+      else if (p.moving && !p.key){ p.pushT+=dt; if (p.pushT>0.6){ p.pushT=0; const k=keys.find(k=>k.col===ch.toLowerCase() && !k.got); if (k) hint(k.x,k.y-50,p.who); } }
+    }
+    // empujar rocas (ahora pueden los dos)
     if (hit && !p.bubble && (ch==='R'||ch==='M') && p.moving && ((hit.dc && Math.abs(mx)>0.5) || (hit.dr && Math.abs(my)>0.5))){
       const k=rockAt(hit.c,hit.r);
       const key=rocks.indexOf(k)+','+hit.dc+','+hit.dr;
@@ -647,11 +1112,22 @@ function updatePlay(dt, frozen){
         const pushers=players.filter(q=>q.pushing && q.pushing.k===k && q.pushing.dc===hit.dc && q.pushing.dr===hit.dr && t-q.pushing.t<0.2);
         if (p.pushT>0.2 && pushers.length>=Math.min(2,awake)){ tryPush(k,hit.dc,hit.dr); for (const q of pushers) q.pushT=0; }
         else if (p.pushT>0.7 && awake>=2){ const o=players.find(q=>q!==p); hint(cx(k.c)+TS/2, cy(k.r)-70, o.who); }
-      } else if (canPush(p)){ if (p.pushT>0.16){ tryPush(k,hit.dc,hit.dr); p.pushT=0; } }
-      else if (p.pushT>0.5) hint(cx(hit.c), cy(hit.r)-60, 'diego');
-    } else { p.pushT=0; p.pushDir=null; p.pushing=null; }
-    if (!frozen && I.aP && !p.bubble) action(p);
+      } else if (p.pushT>0.16){ tryPush(k,hit.dc,hit.dr); p.pushT=0; }
+    } else if (!(ch==='K'||ch==='J')) { p.pushT=0; p.pushDir=null; p.pushing=null; }
+    // teletransportes: aparece en el otro del mismo color
+    const pc=Math.floor(p.x/TS), pr=Math.floor((p.y-TOP)/TS), pk=pc+','+pr, pch=tile(pc,pr);
+    if (p.tpLock && p.tpLock!==pk) p.tpLock=null;
+    if (isPad(pch) && !p.tpLock && !frozen && Math.abs(p.x-cx(pc))<22 && Math.abs(p.y-cy(pr))<22){
+      const o=pads.find(q=>q.ch===pch && (q.c!==pc || q.r!==pr));
+      if (o){ burst(p.x,p.y-20,['#ffffff','#9ff2ff','#ffb3f0'],18,200,.6,5);
+        p.x=cx(o.c); p.y=cy(o.r); p.kx=p.ky=0; p.tpLock=o.c+','+o.r; SFX.tele(); idleT=0;
+        burst(p.x,p.y-20,['#ffffff','#9ff2ff','#ffb3f0'],18,200,.6,5); }
+    }
+    if (!frozen && !p.bubble){ if (I.aP) action(p,'a'); else if (I.xP) action(p,'x'); }
   }
+  // barreras que esperaban a que se apartara un niño
+  for (const k of [...pendingDown]){ const [c,r]=k.split(',').map(Number); if (!playerOnTile(c,r)) pendingDown.delete(k); }
+  for (const sw of switches){ sw.cd-=dt; sw.flash-=dt; }
   // rescatar burbujas
   for (const p of players) if (p.bubble){
     for (const q of players) if (q!==p && !q.bubble && Math.hypot(q.x-p.x,q.y-p.y)<62){
@@ -665,58 +1141,68 @@ function updatePlay(dt, frozen){
 
   for (const k of rocks){ k.ox*=Math.pow(0.0004,dt); k.oy*=Math.pow(0.0004,dt); if (Math.abs(k.ox)<0.5) k.ox=0; if (Math.abs(k.oy)<0.5) k.oy=0; }
 
-  // chispas
+  // magia
   for (const b of bolts){
     b.x+=b.vx*dt; b.y+=b.vy*dt; b.life-=dt;
-    if (Math.random()<0.6) parts.push({x:b.x,y:b.y,vx:rand(-30,30),vy:rand(-30,30),life:.35,max:.35,c:RAINBOW[(Math.random()*6)|0],s:rand(2,4)});
-    const ch=tile(Math.floor(b.x/TS), Math.floor((b.y-TOP)/TS));
-    if (ch==='#'||ch==='R'||ch==='M'||ch==='G'||colorClosed(ch)||(ch==='D'&&!doorOpen)) b.life=0;
-    for (const c of clouds) if (!c.dead && Math.hypot(c.x-b.x,c.y-b.y)<36){ c.dead=true; b.life=0; cloudToFlower(c); }
-    if (boss && boss.hp>0 && Math.hypot(boss.x-b.x,boss.y-b.y)<boss.r){ b.life=0; hitBoss(); }
+    if (Math.random()<0.6) parts.push({x:b.x,y:b.y,vx:rand(-30,30),vy:rand(-30,30),life:.35,max:.35,c:b.who==='diego'?['#7dff8a','#ffd23f','#ffffff'][(Math.random()*3)|0]:RAINBOW[(Math.random()*6)|0],s:rand(2,4)});
+    const bc=Math.floor(b.x/TS), br=Math.floor((b.y-TOP)/TS), ch=tile(bc,br);
+    if (ch==='s'){ const sw=switches.find(s=>s.c===bc&&s.r===br); if (sw) toggleSwitch(sw); b.life=0; }
+    else if (solidForBolt(ch,bc,br)) b.life=0;
+    for (const c of clouds) if (!c.dead && b.life>0 && Math.hypot(c.x-b.x,c.y-b.y)<36){
+      b.life=0;
+      if (c.helmet){ SFX.clonk(); burst(b.x,b.y,['#c9ccd6','#ffffff'],8,160,.4,4); c.bonk=0.3; }
+      else { c.dead=true; cloudToFlower(c); }
+    }
+    if (boss && boss.hp>0 && b.life>0 && Math.hypot(boss.x-b.x,boss.y-b.y)<boss.r){ b.life=0; if (boss.shield>0){ SFX.clonk(); burst(b.x,b.y,['#c9ccd6','#ffffff'],8,160,.4,4); } else hitBoss(1); }
   }
   bolts=bolts.filter(b=>b.life>0);
+  // golpe (rugido de Diego / martillazo de Sofía): rompe paredes agrietadas, quita cascos y mueve cristales
   for (const w of waves){
     w.life-=dt; w.r=20+(1-w.life/w.max)*110;
     for (const c of clouds) if (!c.dead && Math.hypot(c.x-w.x,c.y-w.y)<w.r+20){ c.dead=true; cloudToFlower(c); }
-    if (boss && boss.hp>0 && !w.hit.has('boss') && Math.hypot(boss.x-w.x,boss.y-w.y)<w.r+boss.r){ w.hit.add('boss'); hitBoss(); hitBoss(); }
+    const reach=Math.min(w.r+12,100);
+    const c0=Math.floor(w.ox/TS), r0=Math.floor((w.oy-TOP)/TS);
+    for (let r=r0-2;r<=r0+2;r++) for (let c=c0-2;c<=c0+2;c++){
+      const ch=tile(c,r), d=Math.hypot(cx(c)-w.ox, cy(r)-w.oy);
+      if (d>reach) continue;
+      if (ch==='%' && r>0 && r<ROWS-1 && c>0 && c<COLS-1) breakWall(c,r);
+      if (ch==='s' && !w.hit.has(c+','+r)){ w.hit.add(c+','+r); const sw=switches.find(s=>s.c===c&&s.r===r); if (sw) toggleSwitch(sw); }
+    }
+    if (boss && boss.hp>0 && !w.hit.has('boss') && Math.hypot(boss.x-w.x,boss.y-w.y)<w.r+boss.r){ w.hit.add('boss'); if (boss.shield>0){ boss.shield=0; SFX.crack(); burst(boss.x,boss.y,['#c9ccd6','#ffffff'],24,300,.8,7); } hitBoss(2); }
   }
   waves=waves.filter(w=>w.life>0);
   clouds=clouds.filter(c=>!c.dead);
 
   for (const c of clouds){
-    c.ph+=dt; c.t-=dt;
+    c.ph+=dt; c.t-=dt; if (c.bonk>0) c.bonk-=dt;
     if (c.mode==='n' && c.t<=0){ const a=Math.random()*Math.PI*2, v=rand(50,85); c.vx=Math.cos(a)*v; c.vy=Math.sin(a)*v; c.t=rand(1.5,3); }
     const h=moveBox(c, c.vx*dt, c.vy*dt, 22, solidForCloud);
     if (h){ if (h.dc) c.vx=-c.vx; if (h.dr) c.vy=-c.vy; }
     if (!frozen) for (const p of players) if (Math.hypot(p.x-c.x,(p.y-20)-c.y)<42) hurt(p,c.x,c.y);
   }
-  if (boss){
-    boss.ph+=dt; boss.flash-=dt;
-    if (boss.hp>0){
-      const enraged = boss.hp<=boss.max/2 ? 1.25 : 1;
-      boss.x+=boss.vx*dt*enraged; boss.y+=boss.vy*dt*enraged;
-      if (boss.x<TS+boss.r){ boss.x=TS+boss.r; boss.vx=Math.abs(boss.vx); }
-      if (boss.x>W-TS-boss.r){ boss.x=W-TS-boss.r; boss.vx=-Math.abs(boss.vx); }
-      if (boss.y<TOP+TS+boss.r-20){ boss.y=TOP+TS+boss.r-20; boss.vy=Math.abs(boss.vy); }
-      if (boss.y>TOP+9*TS-boss.r){ boss.y=TOP+9*TS-boss.r; boss.vy=-Math.abs(boss.vy); }
-      boss.spawn-=dt;
-      if (boss.spawn<=0 && !frozen){
-        boss.spawn=4.5;
-        if (clouds.length<3){ const a=Math.random()*Math.PI*2; clouds.push({x:boss.x,y:boss.y+40,mode:'n',vx:Math.cos(a)*80,vy:Math.sin(a)*80,t:2,ph:0}); SFX.boss(); }
-      }
-      if (!frozen) for (const p of players) if (Math.hypot(p.x-boss.x,(p.y-20)-boss.y)<boss.r+12) hurt(p,boss.x,boss.y);
-    }
-  }
+  if (boss) updateBoss(dt, frozen);
   for (const it of items){
     it.ph+=dt;
     for (const p of players) if (!p.bubble && !it.got && Math.hypot(p.x-it.x,(p.y-14)-it.y)<44){
-      it.got=true;
-      if (it.type==='star'){ starsGot++; idleT=0; SFX.star(); burst(it.x,it.y,['#fff27a','#ffd23f','#ffffff'],16,220,.7,5);
-        if (starsGot===starsTotal){ doorOpen=true; staticDirty=true; setTimeout(()=>SFX.open(),250); const tx='¡Ya tenéis todas! ¡La puerta está abierta!'; speech={text:tx,t:4}; say(tx); } }
-      else if (it.type==='heart'){ p.hearts=Math.min(5,p.hearts+2); SFX.heart(); burst(it.x,it.y,['#ff6b8a','#ffffff'],12,180,.6,5); }
+      if (it.type==='star'){ it.got=true; starsGot++; idleT=0; SFX.star(); burst(it.x,it.y,['#fff27a','#ffd23f','#ffffff'],16,220,.7,5);
+        if (starsGot===starsTotal){ doorOpen=true; staticDirty=true; setTimeout(()=>SFX.open(),250); talk('¡Ya tenéis todas! ¡La puerta está abierta!',4); } }
+      else if (it.type==='heart'){ it.got=true; p.hearts=Math.min(5,p.hearts+2); SFX.heart(); burst(it.x,it.y,['#ff6b8a','#ffffff'],12,180,.6,5); }
+      else if (it.type==='gold'){ it.got=true; goldGot=true; SFX.gold(); burst(it.x,it.y,['#fff27a','#ffd23f','#ffffff','#ffb020'],40,320,1.2,7);
+        const w=worldOf(levelIdx); if (!prog.gold.includes(w)){ prog.gold.push(w); saveProg(); }
+        talk('¡Una estrella dorada! Hay un nivel secreto en el mapa.',5); }
+      else if (it.type==='potion' || it.type==='hammer'){
+        const owner = it.type==='potion' ? 'diego' : 'sofia';
+        if (p.who!==owner && !solo()){ hint(it.x,it.y-60,owner); continue; }
+        it.got=true; idleT=0; SFX.potion(); burst(it.x,it.y,it.type==='potion'?['#7dff8a','#ffd23f','#ffffff']:['#ff9ae0','#ffd23f','#ffffff'],30,260,1,6);
+        if (it.type==='potion'){ p.magic=true; talk(`¡${NAMES[p.who]} se ha bebido la poción! Ahora lanza magia con A.`,5); }
+        else { p.golpe=true; talk(`¡${NAMES[p.who]} tiene un martillo! Con X da un golpe que rompe paredes.`,5); }
+      }
     }
   }
   items=items.filter(it=>!it.got);
+  // llaves: cada niño puede llevar una
+  for (const k of keys){ k.ph+=dt; if (k.got) continue;
+    for (const p of players) if (!p.bubble && !p.key && Math.hypot(p.x-k.x,(p.y-14)-k.y)<44){ k.got=true; p.key=k.col; SFX.key(); idleT=0; burst(k.x,k.y,KEY_C[k.col].concat(['#ffffff']),16,200,.7,5); break; } }
   if (bigStar){
     bigStar.t+=dt; bigStar.y+= (bigStar.ty-bigStar.y)*Math.min(1,dt*2);
     if (!bigStar.got && bigStar.t>1) for (const p of players) if (!p.bubble && Math.hypot(p.x-bigStar.x,(p.y-20)-bigStar.y)<70){
@@ -736,7 +1222,7 @@ function updatePlay(dt, frozen){
     if (okP && okQ){
       gatesOpen=true; idleT=0;
       for (const g of gates) if (g.kind==='G'){ setTile(g.c,g.r,'.'); burst(cx(g.c),cy(g.r),['#cfefff','#ffffff','#8fd0ff'],20,220,.9,6); }
-      SFX.open(); const tx='¡Bien hecho! ¡La reja se ha abierto!'; speech={text:tx,t:3.5}; say(tx);
+      SFX.open(); talk('¡Bien hecho! ¡La reja se ha abierto!');
     }
   }
   for (const g of gates) if (g.kind==='G' && gatesOpen) g.open=Math.min(1,g.open+dt*1.5);
@@ -760,22 +1246,49 @@ function updatePlay(dt, frozen){
   if (speech){ speech.t-=dt; if (speech.t<=0) speech=null; }
   if (tito) tito.ph+=dt;
 }
-function hitBoss(){
-  boss.hp--; boss.flash=0.25; SFX.boss();
+// el Nubarrón: con la magia pierde 1, con el golpe 2. A mitad suelta nubes con casco y a veces se pone un escudo que solo rompe el golpe
+function updateBoss(dt, frozen){
+  boss.ph+=dt; boss.flash-=dt;
+  if (boss.hp<=0) return;
+  const phase = boss.hp>13 ? 1 : boss.hp>6 ? 2 : 3;
+  const sp = phase===1 ? 1 : phase===2 ? 1.2 : 1.35;
+  boss.x+=boss.vx*dt*sp; boss.y+=boss.vy*dt*sp;
+  if (boss.x<TS+boss.r){ boss.x=TS+boss.r; boss.vx=Math.abs(boss.vx); }
+  if (boss.x>W-TS-boss.r){ boss.x=W-TS-boss.r; boss.vx=-Math.abs(boss.vx); }
+  if (boss.y<TOP+TS+boss.r-20){ boss.y=TOP+TS+boss.r-20; boss.vy=Math.abs(boss.vy); }
+  if (boss.y>TOP+9*TS-boss.r){ boss.y=TOP+9*TS-boss.r; boss.vy=-Math.abs(boss.vy); }
+  if (frozen) return;
+  boss.spawn-=dt;
+  if (boss.spawn<=0){
+    boss.spawn=phase===1?4.5:3.8;
+    if (clouds.length<(phase===1?3:4)){ const a=Math.random()*Math.PI*2; clouds.push({x:boss.x,y:boss.y+40,mode:'n',helmet:phase>1&&Math.random()<0.5,vx:Math.cos(a)*80,vy:Math.sin(a)*80,t:2,ph:0}); SFX.boss(); }
+  }
+  if (phase===3){
+    if (boss.shield>0) boss.shield-=dt;
+    else { boss.shieldT-=dt; if (boss.shieldT<=0){ boss.shieldT=7; boss.shield=4; SFX.boss(); talk('¡Tiene escudo! ¡Dadle un golpe con X!',3); } }
+  }
+  for (const p of players) if (Math.hypot(p.x-boss.x,(p.y-20)-boss.y)<boss.r+12) hurt(p,boss.x,boss.y);
+}
+function hitBoss(n){
+  boss.hp=Math.max(0,boss.hp-n); boss.flash=0.25; SFX.boss();
   burst(boss.x+rand(-30,30),boss.y+rand(-30,30),['#ffffff','#ffd6f0'],10,200,.5,5);
   if (boss.hp<=0){
-    boss.hp=0; clouds.forEach(c=>{ c.dead=true; cloudToFlower(c); }); clouds=[];
+    boss.hp=0; boss.shield=0; clouds.forEach(c=>{ c.dead=true; cloudToFlower(c); }); clouds=[];
     burst(boss.x,boss.y,RAINBOW,60,420,1.4,7); SFX.open();
     bigStar={x:boss.x,y:boss.y,ty:Math.min(boss.y,TOP+6*TS),t:0};
-    const tx='¡Lo habéis conseguido! ¡Coged la gran estrella!'; speech={text:tx,t:4}; say(tx);
+    talk('¡Lo habéis conseguido! ¡Coged la gran estrella!',4);
   }
 }
 function levelDone(){
   state='clear'; stateT=0; SFX.win();
   const msgs=['¡Genial!','¡Qué buen equipo!','¡Lo habéis conseguido!','¡Muy bien!'];
   say(msgs[(Math.random()*msgs.length)|0]);
-  if (levelIdx+2>maxLevel){ maxLevel=Math.min(LEVELS.length, levelIdx+2); try{ localStorage.setItem('aventura.max', maxLevel); }catch(e){} }
-  pickLevel=Math.min(maxLevel, levelIdx+2);
+  if (levelIdx<MAIN){
+    if (levelIdx+2>prog.max) prog.max=Math.min(MAIN, levelIdx+2);
+    if (levelIdx===MAIN-1) prog.won=true;
+    mapSel=Math.min(MAIN-1, levelIdx+1);
+  } else { const w=levelIdx-MAIN; if (!prog.done.includes(w)) prog.done.push(w); mapSel=levelIdx; }
+  saveProg();
   for (const p of players) burst(p.x,p.y-30,RAINBOW,20,260,1,6);
 }
 // ---------------------------------------------------------------- dibujo
@@ -843,7 +1356,8 @@ function idolStyle(g,b){
   g.beginPath(); g.moveTo(-18,-55-b); g.quadraticCurveTo(-12,-46-b,0,-49-b); g.stroke();   // brazo del micro
   circle(g,1,-49-b,2.4,'#ff9ae0');
 }
-function drawKid(g, who, x, y, s, face, walk, moving, t){
+function drawKid(g, who, x, y, s, face, walk, moving, t, ex){
+  ex=ex||{};
   if (who==='sofia') s*=1.07;   // Sofía es un poco más alta
   g.save(); g.translate(x,y); g.scale(s*face, s);   // face=1 mira a la derecha
   ellipse(g,0,0,20,7,'rgba(0,0,0,.22)');
@@ -862,11 +1376,13 @@ function drawKid(g, who, x, y, s, face, walk, moving, t){
     // dibujo naranja de dinosaurio en la camiseta
     ellipse(g,1,-33-bob,7,5,'#ff9f1c'); circle(g,7,-38-bob,3.5,'#ff9f1c'); circle(g,8,-39-bob,1,'#3a2212');
     g.fillStyle='#ffd23f'; g.fillRect(-4,-30-bob,2,3); g.fillRect(3,-30-bob,2,3);
+    if (ex.potion){ drawPotion(g,11,-24-bob,0.42); circle(g,16,-33-bob,7+Math.sin(t*6)*2,'rgba(125,255,138,.35)'); }
     const ar = moving ? Math.sin(walk+Math.PI)*4 : 0;
     circle(g,-16,-33-bob+ar,5.5,SKIN); circle(g,16,-33-bob-ar,5.5,SKIN);
     circle(g,0,-60-bob,18,SKIN);
     diegoHair(g,bob);
   } else {
+    if (ex.hammer && !(ex.swing>0)) drawHammer(g,-12,-24-bob,0.7,-0.55);
     sofiaHairBack(g,bob);
     rrect(g,-10+lg*0.6,-18,8,12,3,SKIN); rrect(g,2-lg*0.6,-18,8,12,3,SKIN);
     rrect(g,-12+lg*0.6,-10,13,8,3,'#ff7eb6'); rrect(g,0-lg*0.6,-10,13,8,3,'#ff7eb6');
@@ -894,6 +1410,7 @@ function drawKid(g, who, x, y, s, face, walk, moving, t){
     circle(g,0,-60-bob,18,SKIN);
     sofiaHairFront(g,bob);
     idolStyle(g,bob);
+    if (ex.hammer && ex.swing>0){ const q=1-ex.swing/0.3; drawHammer(g,-14,-36-bob,0.9,-1.4+q*3.0); }
     // pequitas
     g.fillStyle='rgba(160,90,50,.45)'; for (const [fx,fy] of [[-3,-55],[0,-53],[11,-55],[13,-53]]) g.fillRect(fx,fy-bob,1.4,1.4);
   }
@@ -911,7 +1428,7 @@ function drawFace(g, who, x, y, s){   // retrato para el marcador
   eyes(g,-60); cheeksMouth(g,-54);
   g.restore();
 }
-function drawCloud(g,x,y,s,t,col='#8f95aa',angry=true,flash=false){
+function drawCloud(g,x,y,s,t,col='#8f95aa',angry=true,flash=false,helmet=false){
   g.save(); g.translate(x, y+Math.sin(t*3)*4); g.scale(s,s);
   ellipse(g,0,34,22,6,'rgba(0,0,0,.18)');
   const c = flash ? '#ffffff' : col;
@@ -924,6 +1441,8 @@ function drawCloud(g,x,y,s,t,col='#8f95aa',angry=true,flash=false){
   // gotitas
   g.fillStyle='rgba(120,190,255,.8)';
   for (let i=0;i<2;i++){ const yy=((t*40+i*14)%26); g.fillRect(-8+i*14, 20+yy, 2, 5); }
+  if (helmet){ g.fillStyle='#e8453c'; g.beginPath(); g.arc(0,-12,20,Math.PI,0); g.closePath(); g.fill();
+    g.fillStyle='#ffffff'; g.fillRect(-3,-31,6,19); rrect(g,-25,-15,50,7,3,'#b8322b'); circle(g,-9,-22,3.5,'rgba(255,255,255,.5)'); }
   g.restore();
 }
 function drawFlower(g,f){
@@ -1023,12 +1542,12 @@ function drawWall(g, kind, x, y, c, r){
 }
 function floorDetail(g,x,y,c,r){
   const th=L.theme, a=hsh(c,r,1), b=hsh(c,r,2);
-  if (['pradera','bosque','rio','charcos','pintura'].includes(th)){
+  if (['pradera','bosque','rio','charcos','pintura','secreto'].includes(th)){
     g.strokeStyle=theme.dark; g.globalAlpha=.32; g.lineWidth=2; g.lineCap='round';
     for (let k=0;k<3;k++){ const tx=x+8+hsh(c,r,10+k)*48, ty=y+12+hsh(c,r,20+k)*44;
       g.beginPath(); g.moveTo(tx-3,ty-6); g.lineTo(tx,ty); g.lineTo(tx+3,ty-7); g.moveTo(tx,ty); g.lineTo(tx,ty-8); g.stroke(); }
     g.globalAlpha=1;
-    if (a<.22){ const fc= th==='pintura' ? FLOWER_C[(b*6)|0] : (b<.5?'#ffffff':'#ffe14a');
+    if (a<.22){ const fc= (th==='pintura'||th==='secreto') ? FLOWER_C[(b*6)|0] : (b<.5?'#ffffff':'#ffe14a');
       const fx=x+14+b*36, fy=y+16+a*120%34;
       for (let k=0;k<5;k++){ const an=k*1.2566; circle(g,fx+Math.cos(an)*3.5,fy+Math.sin(an)*3.5,2.6,fc); } circle(g,fx,fy,2,'#ffb02e'); }
     else if (a>.9){ ellipse(g,x+20+b*24,y+44,5,3.5,'rgba(110,100,80,.45)'); }
@@ -1098,7 +1617,10 @@ function renderStatic(){
     if (c+1<COLS && grid[r][c+1]!=='#'){ const gr=g.createLinearGradient(x+TS,0,x+TS+10,0); gr.addColorStop(0,'rgba(0,0,0,.14)'); gr.addColorStop(1,'rgba(0,0,0,0)'); g.fillStyle=gr; g.fillRect(x+TS,y,10,TS); }
   }
   // paredes (de arriba abajo, para que las de delante tapen a las de detrás)
-  for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++) if (grid[r][c]==='#') drawWall(g, theme.wall, c*TS, TOP+r*TS, c, r);
+  for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++){ const ch=grid[r][c], x=c*TS, y=TOP+r*TS;
+    if (ch==='#') drawWall(g, theme.wall, x, y, c, r);
+    else if (ch==='%') drawCracked(g,x,y);
+    else if (ch==='K'||ch==='J') drawLock(g,x,y,ch.toLowerCase()); }
   staticDirty=false;
 }
 let vignette=null, vignetteTheme=null;
@@ -1106,7 +1628,7 @@ function getVignette(){
   if (vignette && vignetteTheme===L.theme) return vignette;
   vignette=document.createElement('canvas'); vignette.width=W/2; vignette.height=(H-TOP)/2; vignetteTheme=L.theme;
   const g=vignette.getContext('2d'), w=W/2, h=(H-TOP)/2;
-  const tint = {cueva:'20,10,45', nieve:'40,70,120', hielo:'40,70,120', castillo:'120,60,120', bosque:'10,40,10'}[L.theme] || '20,30,10';
+  const tint = {secreto:'40,20,90', cueva:'20,10,45', nieve:'40,70,120', hielo:'40,70,120', castillo:'120,60,120', bosque:'10,40,10'}[L.theme] || '20,30,10';
   const gr=g.createRadialGradient(w/2,h/2,h*0.45,w/2,h/2,w*0.62);
   gr.addColorStop(0,`rgba(${tint},0)`); gr.addColorStop(1,`rgba(${tint},${L.theme==='cueva'?.45:.28})`);
   g.fillStyle=gr; g.fillRect(0,0,w,h);
@@ -1190,6 +1712,89 @@ function drawAmbient(g,t){
   g.globalAlpha=1;
 }
 
+function drawCracked(g,x,y){
+  ellipse(g,x+32,y+60,30,6,'rgba(0,0,0,.2)');
+  rrect(g,x+3,y+12,58,50,10,'#8a7d6b'); rrect(g,x+3,y+4,58,44,10,'#b8ab93');
+  g.strokeStyle='rgba(80,65,45,.4)'; g.lineWidth=2; g.beginPath();
+  g.moveTo(x+4,y+26); g.lineTo(x+60,y+26); g.moveTo(x+22,y+5); g.lineTo(x+22,y+26); g.moveTo(x+44,y+26); g.lineTo(x+44,y+47); g.stroke();
+  g.strokeStyle='#3a2f22'; g.lineWidth=3.5; g.lineCap='round'; g.lineJoin='round'; g.beginPath();
+  g.moveTo(x+30,y+5); g.lineTo(x+37,y+17); g.lineTo(x+28,y+28); g.lineTo(x+39,y+40); g.lineTo(x+32,y+58);
+  g.moveTo(x+28,y+28); g.lineTo(x+14,y+36); g.moveTo(x+39,y+40); g.lineTo(x+54,y+37); g.stroke();
+  g.fillStyle='rgba(255,255,255,.25)'; g.fillRect(x+8,y+8,10,4);
+}
+function drawLock(g,x,y,col){
+  const [c1,c2]=KEY_C[col];
+  ellipse(g,x+32,y+62,28,5,'rgba(0,0,0,.2)');
+  rrect(g,x+4,y+6,56,56,10,shade(c1,-0.35)); rrect(g,x+6,y+2,52,50,9,c1);
+  g.strokeStyle='rgba(255,255,255,.4)'; g.lineWidth=2; g.strokeRect(x+12,y+8,40,38);
+  g.strokeStyle=c2; g.lineWidth=5; g.beginPath(); g.arc(x+32,y+22,9,Math.PI,0); g.stroke();
+  rrect(g,x+20,y+22,24,20,5,c2); circle(g,x+32,y+30,3.5,'#2a1a00'); g.fillStyle='#2a1a00'; g.fillRect(x+31,y+31,2,7);
+}
+function drawKey(g,x,y,col,s=1,rot=0){
+  const [c1,c2]=KEY_C[col];
+  g.save(); g.translate(x,y); g.rotate(rot); g.scale(s,s);
+  g.fillStyle=c1; g.fillRect(-2,-3.5,24,7); g.fillRect(14,3,4,8); g.fillRect(19,3,3,6);
+  circle(g,-10,0,11,c1); circle(g,-10,0,4.5,'rgba(0,0,0,.35)');
+  g.strokeStyle=c2; g.lineWidth=2; g.beginPath(); g.arc(-10,0,11,0,Math.PI*2); g.stroke();
+  circle(g,-14,-4,2.5,'rgba(255,255,255,.7)');
+  g.restore();
+}
+function drawPotion(g,x,y,s=1){
+  g.save(); g.translate(x,y); g.scale(s,s);
+  circle(g,0,6,15,'#7dff8a'); g.strokeStyle='#2a7a3a'; g.lineWidth=3; g.beginPath(); g.arc(0,6,15,0,Math.PI*2); g.stroke();
+  rrect(g,-5,-17,10,13,3,'#dff6ff'); rrect(g,-7,-22,14,7,3,'#a0662a');
+  circle(g,-5,1,4.5,'rgba(255,255,255,.65)'); circle(g,5,11,2.5,'#ffd23f'); circle(g,-2,12,1.8,'#ffffff');
+  g.restore();
+}
+function drawHammer(g,x,y,s=1,rot=0){   // el origen es la mano
+  g.save(); g.translate(x,y); g.rotate(rot); g.scale(s,s);
+  g.fillStyle='#a0662a'; g.fillRect(-2.5,-30,5,34);
+  rrect(g,-15,-46,30,18,6,'#c77dff'); rrect(g,-15,-46,30,6,4,'#e6c2ff'); star(g,0,-37,5,0,'#ffd23f',null);
+  g.restore();
+}
+function drawGold(g,x,y,t){
+  const k=1+Math.sin(t*5)*0.08;
+  g.globalAlpha=.35+.15*Math.sin(t*3); circle(g,x,y,34,'#ffcf4a'); g.globalAlpha=1;
+  star(g,x,y,30*k,t*0.6,'#ffb020','#b86a00',4); star(g,x,y,16*k,t*0.6,'#fff27a',null);
+  for (let i=0;i<3;i++){ const a=t*2+i*2.1; star(g,x+Math.cos(a)*40,y+Math.sin(a)*24,4,0,'#ffffff',null); }
+}
+function drawPad(g,pd,t){
+  const x=cx(pd.c), y=cy(pd.r), col= pd.ch==='@' ? ['#9ff2ff','#2fb6d8'] : ['#ffc2f2','#d64fb4'];
+  ellipse(g,x,y+8,28,16,'#4a4f66'); ellipse(g,x,y+5,24,13,col[1]); ellipse(g,x,y+5,14,7,col[0]);
+  for (let k=0;k<3;k++){ const s=((t*0.8+k/3)%1); g.globalAlpha=(1-s)*.9; g.strokeStyle=col[0]; g.lineWidth=3;
+    g.beginPath(); g.ellipse(x,y+5-s*34,22*(1-s*.3),11*(1-s*.3),0,0,Math.PI*2); g.stroke(); }
+  g.globalAlpha=1;
+}
+function drawArrowTile(g,c,r,t){
+  const [dx,dy]=ARROW_DIR[tile(c,r)], x=cx(c), y=cy(r);
+  rrect(g,c*TS+3,TOP+r*TS+3,TS-6,TS-6,10,'rgba(50,60,110,.38)');
+  g.save(); g.translate(x,y); g.rotate(Math.atan2(dy,dx));
+  g.strokeStyle='#ffe27a'; g.lineWidth=6; g.lineCap='round'; g.lineJoin='round';
+  for (let k=0;k<2;k++){ const o=((t*50+k*32)%64)-32; g.globalAlpha=1-Math.abs(o)/32*0.75;
+    g.beginPath(); g.moveTo(o-9,-13); g.lineTo(o+5,0); g.lineTo(o-9,13); g.stroke(); }
+  g.globalAlpha=1; g.restore();
+}
+function drawBarrier(g,c,r,t){
+  const ch=tile(c,r), col= ch==='[' ? '#5fd8ff' : '#ff7ad0', x=c*TS, y=TOP+r*TS;
+  if (raised(c,r)){
+    rrect(g,x+4,y+2,56,60,8,shade(col,-0.35)); rrect(g,x+4,y-8,56,58,8,col);
+    g.fillStyle='rgba(255,255,255,.5)'; g.fillRect(x+12,y-2,7,44); g.fillRect(x+25,y-2,3,44);
+  } else {
+    g.strokeStyle=col; g.globalAlpha=.75; g.lineWidth=3; g.setLineDash([7,5]); g.strokeRect(x+7,y+7,TS-14,TS-14); g.setLineDash([]); g.globalAlpha=1;
+  }
+}
+function drawSwitch(g,sw,t){
+  const x=cx(sw.c), y=cy(sw.r), col= swState===0?'#5fd8ff':'#ff7ad0';
+  ellipse(g,x,y+26,26,8,'rgba(0,0,0,.25)'); rrect(g,x-22,y+6,44,22,7,'#6d6f85'); rrect(g,x-18,y+2,36,10,5,'#8d90a8');
+  const k=sw.flash>0?1.25:1;
+  g.save(); g.translate(x,y-16+Math.sin(t*2)*3); g.scale(k,k);
+  g.globalAlpha=.3+.15*Math.sin(t*4); circle(g,0,0,28,col); g.globalAlpha=1;
+  g.fillStyle=col; g.beginPath(); g.moveTo(0,-28); g.lineTo(15,-4); g.lineTo(0,20); g.lineTo(-15,-4); g.closePath(); g.fill();
+  g.fillStyle='rgba(255,255,255,.6)'; g.beginPath(); g.moveTo(0,-28); g.lineTo(-15,-4); g.lineTo(-4,-4); g.closePath(); g.fill();
+  g.strokeStyle=shade(col,-0.4); g.lineWidth=2; g.beginPath(); g.moveTo(0,-28); g.lineTo(15,-4); g.lineTo(0,20); g.lineTo(-15,-4); g.closePath(); g.stroke();
+  g.restore();
+}
+
 function drawPlay(t){
   const g=ctx;
   if (staticDirty || !staticLayer) renderStatic();
@@ -1199,6 +1804,8 @@ function drawPlay(t){
   for (const s of bridgeSpots){ const x=cx(s.c), y=cy(s.r), k=1+Math.sin(t*4)*0.1;
     g.save(); g.translate(x,y); g.scale(k,k); g.rotate(-0.6);
     g.fillStyle='#8b5a2b'; g.fillRect(-3,-4,6,26); rrect(g,-6,-20,12,18,4,RAINBOW[((t*4)|0)%6]); g.restore(); }
+  for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++){ const ch=grid[r][c]; if (isArrow(ch)) drawArrowTile(g,c,r,t); else if (ch==='['||ch===']') drawBarrier(g,c,r,t); }
+  for (const pd of pads) drawPad(g,pd,t);
   for (const pl of plates) drawPlate(g,pl,t);
   for (const gt of gates) drawGate(g,gt,t);
   if (door) drawDoor(g,t);
@@ -1208,18 +1815,25 @@ function drawPlay(t){
   for (const it of items) list.push({y:it.y, d:()=>{ const b=Math.sin(it.ph*3)*4;
     ellipse(g,it.x,it.y+20,14,5,'rgba(0,0,0,.18)');
     if (it.type==='star'){ star(g,it.x,it.y-6+b,27,Math.sin(it.ph*2)*0.2,'rgba(255,240,120,.35)',null); star(g,it.x,it.y-6+b,18,Math.sin(it.ph*2)*0.2); circle(g,it.x-5,it.y-12+b,2.5,'rgba(255,255,255,.8)'); }
+    else if (it.type==='gold') drawGold(g,it.x,it.y-8+b,t);
+    else if (it.type==='potion') drawPotion(g,it.x,it.y-6+b,1.2);
+    else if (it.type==='hammer') drawHammer(g,it.x,it.y+12+b,1.1,0.3);
     else heart(g,it.x,it.y-4+b,15); }});
-  for (const c of clouds) list.push({y:c.y+20, d:()=>drawCloud(g,c.x,c.y,1,c.ph)});
+  for (const k of keys) if (!k.got) list.push({y:k.y, d:()=>{ ellipse(g,k.x,k.y+20,14,5,'rgba(0,0,0,.18)'); g.globalAlpha=.3; circle(g,k.x,k.y-4,26,KEY_C[k.col][0]); g.globalAlpha=1; drawKey(g,k.x,k.y-4+Math.sin(k.ph*3)*4,k.col,1.1,Math.sin(k.ph*2)*0.2); }});
+  for (const sw of switches) list.push({y:cy(sw.r)+20, d:()=>drawSwitch(g,sw,t)});
+  for (const c of clouds) list.push({y:c.y+20, d:()=>drawCloud(g,c.x,c.y,1,c.ph,'#8f95aa',true,c.bonk>0,c.helmet)});
   if (tito) list.push({y:tito.y+20, d:()=>drawTito(g,tito.x,tito.y,tito.ph)});
   for (const p of players) list.push({y:p.y+18, d:()=>drawPlayer(g,p,t)});
   if (boss) list.push({y:boss.y+boss.r, d:()=>{ if (boss.hp>0){ drawCloud(g,boss.x,boss.y,3.2,boss.ph,'#62667e',true,boss.flash>0);
     g.fillStyle='#ffd23f'; g.beginPath(); const bx=boss.x, by=boss.y-58+Math.sin(boss.ph*3)*4;
+    if (boss.shield>0){ g.globalAlpha=.35+.1*Math.sin(t*8); circle(g,boss.x,boss.y,boss.r+22,'#c9d4ff'); g.globalAlpha=1; g.strokeStyle='#ffffff'; g.lineWidth=5; g.beginPath(); g.arc(boss.x,boss.y,boss.r+22,0,Math.PI*2); g.stroke(); g.fillStyle='#ffd23f'; g.beginPath(); }
     g.moveTo(bx-30,by+10); g.lineTo(bx-30,by-12); g.lineTo(bx-15,by); g.lineTo(bx,by-18); g.lineTo(bx+15,by); g.lineTo(bx+30,by-12); g.lineTo(bx+30,by+10); g.closePath(); g.fill();
     } else { for (let k=0;k<6;k++){ g.strokeStyle=RAINBOW[k]; g.lineWidth=12; g.globalAlpha=Math.max(0,1-(bigStar?bigStar.t/4:0)); g.beginPath(); g.arc(boss.x,boss.y+80,150-k*12,Math.PI,0); g.stroke(); } g.globalAlpha=1; } }});
   list.sort((a,b)=>a.y-b.y); for (const o of list) o.d();
   if (bigStar && !bigStar.got){ const k=1+Math.sin(t*5)*0.1; star(g,bigStar.x,bigStar.y,60*k,t*0.5,'rgba(255,240,120,.35)',null); star(g,bigStar.x,bigStar.y,42*k,t*0.5,'#ffd93b','#e8a200',4); }
-  for (const b of bolts){ star(g,b.x,b.y,12,t*10,'#ffffff','#ff7eb6',2); }
-  for (const w of waves){ g.globalAlpha=w.life/w.max; g.strokeStyle='#ffb020'; g.lineWidth=8; g.beginPath(); g.arc(w.x,w.y,w.r,0,Math.PI*2); g.stroke();
+  for (const b of bolts){ if (b.who==='diego'){ circle(g,b.x,b.y,15,'rgba(125,255,138,.35)'); circle(g,b.x,b.y,9,'#7dff8a'); circle(g,b.x,b.y,4.5,'#fffbd0'); star(g,b.x,b.y,7,t*12,null,'#ffd23f',2); }
+    else star(g,b.x,b.y,12,t*10,'#ffffff','#ff7eb6',2); }
+  for (const w of waves){ g.globalAlpha=w.life/w.max; g.strokeStyle=w.who==='sofia'?'#d48cff':'#ffb020'; g.lineWidth=8; g.beginPath(); g.arc(w.x,w.y,w.r,0,Math.PI*2); g.stroke();
     g.strokeStyle='#ffffff'; g.lineWidth=3; g.beginPath(); g.arc(w.x,w.y,w.r*0.75,0,Math.PI*2); g.stroke(); g.globalAlpha=1; }
   drawParts(g);
   drawAmbient(g,t);
@@ -1239,7 +1853,8 @@ function drawPlayer(g,p,t){
   // anillo de color debajo
   g.strokeStyle=COLORS[p.who]; g.lineWidth=4; g.globalAlpha=.8; g.beginPath(); g.ellipse(p.x,p.y+18,24,9,0,0,Math.PI*2); g.stroke(); g.globalAlpha=1;
   if (blink) g.globalAlpha=.35;
-  drawKid(g,p.who,p.x,p.y+18,1,p.face,p.walk,p.moving,t);
+  drawKid(g,p.who,p.x,p.y+18,1,p.face,p.walk,p.moving,t,{hammer:p.who==='sofia'&&p.golpe, potion:p.who==='diego'&&p.magic, swing:p.swing});
+  if (p.key) drawKey(g,p.x+26,p.y-50,p.key,0.8,-0.5+Math.sin(t*3)*0.15);
   g.globalAlpha=1;
   if (p.bubble){ g.globalAlpha=.35; circle(g,p.x,p.y-22,52,'#bfefff'); g.globalAlpha=1;
     g.strokeStyle='rgba(255,255,255,.9)'; g.lineWidth=4; g.beginPath(); g.arc(p.x,p.y-22,52,0,Math.PI*2); g.stroke();
@@ -1289,8 +1904,9 @@ function drawHUD(g,t){
   // botes de pintura de Sofía
   if (L && L.paint!=null){ const x0=W/2+ (starsTotal*46)/2 + 50; for (let k=0;k<L.paint;k++) paintPot(g,x0+k*30,TOP/2+2,k<paintLeft); }
   // ayuda para los mayores: deshacer y reiniciar
-  if (L && (L.hint || rocks.length)){
-    const txt='B: deshacer   ·   mantener Y: empezar de nuevo';
+  if (goldGot) drawGold(g, W/2-(starsTotal*46)/2-56, TOP/2+2, t);
+  if (L){
+    const txt = L.basic ? 'A y X: disparar   ·   B: deshacer   ·   mantener Y: empezar de nuevo' : 'A: magia   ·   X: golpe   ·   B: deshacer   ·   mantener Y: empezar de nuevo';
     g.font='bold 15px system-ui,Arial'; g.textAlign='center'; g.textBaseline='middle';
     const w=g.measureText(txt).width+24; rrect(g,W/2-w/2,H-26,w,22,11,'rgba(0,0,0,.35)'); g.fillStyle='rgba(255,255,255,.9)'; g.fillText(txt,W/2,H-15);
   }
@@ -1324,14 +1940,8 @@ function drawTitle(t){
   drawTito(g,W/2,500,t);
   // flechas para cambiar
   g.fillStyle='rgba(255,255,255,.75)'; g.font='bold 30px system-ui,Arial'; g.fillText('◀ ▶', W/2, 600);
-  // nivel
-  if (maxLevel>1){
-    g.font='bold 28px system-ui,Arial'; g.fillStyle='#fff'; g.fillText('Nivel', W/2, 190);
-    for (let k=1;k<=LEVELS.length;k++){ const x=W/2+(k-(LEVELS.length+1)/2)*58, y=236;
-      if (k<=maxLevel) star(g,x,y,k===pickLevel?24:16,0,k===pickLevel?'#ffd93b':'#c9a93a','#7a5a00',2); else star(g,x,y,14,0,'rgba(255,255,255,.12)',null);
-      g.fillStyle=k===pickLevel?'#3a2a00':'rgba(255,255,255,.8)'; g.font='bold 16px system-ui,Arial'; g.fillText(k,x,y+2); }
-    g.font='20px system-ui,Arial'; g.fillStyle='rgba(255,255,255,.7)'; g.fillText('▲ ▼ elegir nivel', W/2, 276);
-  }
+  // progreso
+  if (prog.max>1){ const n=prog.max-1+(prog.won?1:0); star(g,W/2-40,210,20,0,'#ffd93b','#a07a00',2); bigText(g,n+' / '+MAIN,W/2+30,212,34,'#ffffff'); }
   const k=0.5+0.5*Math.sin(t*4);
   g.globalAlpha=.6+.4*k; bigText(g,'Pulsa A para empezar',W/2,H-36,36,'#ffffff'); g.globalAlpha=1;
   drawParts(g);
@@ -1377,7 +1987,8 @@ function drawTrain(t){
   for (let k=0;k<4;k++){ const s=((t*1.5+k*0.25)%1); g.globalAlpha=1-s; circle(g,x+140-s*120,-190-s*80,14+s*24,'#ffffff'); } g.globalAlpha=1;
   g.restore();
   bigText(g,Lv.name,W/2,150,72,'#ffffff');
-  for (let k=1;k<=LEVELS.length;k++) star(g,W/2+(k-(LEVELS.length+1)/2)*50,240,16,0,k<=levelIdx+1?'#ffd93b':'rgba(255,255,255,.5)','#a07a00',2);
+  if (levelIdx<MAIN){ const w=worldOf(levelIdx); for (let k=0;k<6;k++) star(g,W/2+(k-2.5)*56,240,18,0,w*6+k<=levelIdx?'#ffd93b':'rgba(255,255,255,.5)','#a07a00',2); }
+  else drawGold(g,W/2,240,t);
 }
 function drawClearOverlay(t){
   const g=ctx; g.fillStyle='rgba(20,20,60,.35)'; g.fillRect(0,0,W,H);
@@ -1399,9 +2010,50 @@ function drawEnd(t){
 }
 function drawPause(){
   const g=ctx; g.fillStyle='rgba(10,10,40,.6)'; g.fillRect(0,0,W,H);
-  bigText(g,'Pausa',W/2,H/2-30,100,'#ffffff'); bigText(g,'Pulsa A para seguir',W/2,H/2+60,36,'#ffe27a');
+  bigText(g,'Pausa',W/2,H/2-30,100,'#ffffff'); bigText(g,'Pulsa A para seguir',W/2,H/2+60,36,'#ffe27a'); bigText(g,'B: volver al mapa',W/2,H/2+120,28,'#ffffff');
 }
 
+function drawMap(t){
+  const g=ctx; skyBg(g,t,'#1b2a63','#4a3a8a');
+  for (const s of SKY_STARS){ g.globalAlpha=.25+.25*Math.sin(t*2+s.x); circle(g,s.x,s.y,s.r,'#fff'); } g.globalAlpha=1;
+  bigText(g,'Las estrellas perdidas',W/2,40,40);
+  const TH=['pradera','nieve','templo','pintura','castillo'];
+  for (let w=0;w<5;w++){
+    const th=THEMES[TH[w]], y=134+w*106, open=unlocked(w*6);
+    rrect(g,40,y-46,1060,92,36, open?th.g1:'rgba(255,255,255,.08)');
+    if (open){ g.globalAlpha=.5; rrect(g,40,y+18,1060,28,20,th.dark); g.globalAlpha=1; }
+    g.font='bold 18px system-ui,Arial'; g.textAlign='left'; g.textBaseline='middle'; g.fillStyle=open?'rgba(30,30,60,.75)':'rgba(255,255,255,.35)';
+    g.fillText((w+1)+'. '+WORLDS[w], 64, y-31);
+    // camino
+    g.strokeStyle=open?'rgba(255,255,255,.8)':'rgba(255,255,255,.15)'; g.lineWidth=6; g.setLineDash([2,12]); g.lineCap='round';
+    g.beginPath(); g.moveTo(mapPos(w*6).x,y+6); g.lineTo(mapPos(w*6+5).x,y+6); g.stroke();
+    g.beginPath(); g.moveTo(mapPos(w*6+5).x,y+6); g.lineTo(mapPos(MAIN+w).x,y+6); g.stroke(); g.setLineDash([]);
+  }
+  for (const i of MAP_ORDER){
+    const {x,y}=mapPos(i), sel=i===mapSel, op=unlocked(i), done=finished(i);
+    if (i>=MAIN){
+      if (op){ drawGold(g,x,y+4,t); if (done){ circle(g,x+22,y+24,11,'#3fae55'); g.strokeStyle='#fff'; g.lineWidth=3; g.beginPath(); g.moveTo(x+16,y+24); g.lineTo(x+21,y+29); g.lineTo(x+28,y+19); g.stroke(); } }
+      else { circle(g,x,y+4,28,'rgba(255,255,255,.1)'); g.fillStyle='rgba(255,255,255,.4)'; g.font='bold 30px system-ui,Arial'; g.textAlign='center'; g.textBaseline='middle'; g.fillText('?',x,y+6); }
+    } else {
+      const r = sel?34:28;
+      circle(g,x,y+8,r,'rgba(0,0,0,.25)');
+      circle(g,x,y+4,r, !op?'#7a7f99': done?'#ffd93b':'#ffffff');
+      if (op && !done){ g.globalAlpha=.4+.3*Math.sin(t*5); g.strokeStyle='#ffd93b'; g.lineWidth=5; g.beginPath(); g.arc(x,y+4,r+6,0,Math.PI*2); g.stroke(); g.globalAlpha=1; }
+      g.fillStyle=!op?'rgba(255,255,255,.5)':'#2a2a50'; g.font=`900 ${sel?28:24}px system-ui,Arial`; g.textAlign='center'; g.textBaseline='middle';
+      if (i===MAIN-1) drawCloud(g,x,y+2,0.8,t,'#62667e',true); else g.fillText(i+1,x,y+6);
+    }
+    if (sel){ const b=Math.abs(Math.sin(t*4))*8;
+      g.strokeStyle='#ffffff'; g.lineWidth=5; g.beginPath(); g.arc(x,y+4,i>=MAIN?42:40,0,Math.PI*2); g.stroke();
+      drawFace(g,charOf[0],x-20,y-50-b,0.95); if (active[1]) drawFace(g,charOf[1],x+20,y-50-b,0.95); }
+  }
+  // nombre del nivel elegido
+  const Lv=LEVELS[mapSel];
+  rrect(g,W/2-330,H-54,660,46,23,'rgba(0,0,0,.35)');
+  bigText(g,Lv.name,W/2,H-31,30,'#ffffff');
+  g.font='bold 18px system-ui,Arial'; g.fillStyle='rgba(255,255,255,.7)'; g.textAlign='right'; g.fillText('A: jugar',W-30,H-31);
+  g.textAlign='left'; g.fillText('B: volver',30,H-31);
+  drawParts(g);
+}
 // ------------------------------------------------------------- bucle
 let last=now();
 function frame(){
@@ -1412,6 +2064,7 @@ function frame(){
     ctx.setTransform(scale*dpr,0,0,scale*dpr,offX*dpr,offY*dpr);
     ctx.save(); ctx.beginPath(); ctx.rect(0,0,W,H); ctx.clip();
     if (state==='title') drawTitle(t);
+    else if (state==='map') drawMap(t);
     else if (state==='story') drawStory(t);
     else if (state==='train') drawTrain(t);
     else if (state==='end') drawEnd(t);
@@ -1422,6 +2075,7 @@ function frame(){
 }
 // para pruebas: ?nivel=3 empieza directamente en ese nivel
 if (QS.get('nivel')){ active=[true, QS.get('solo')!=='1']; levelIdx=clamp((+QS.get('nivel')|0)-1,0,LEVELS.length-1); state='play'; loadLevel(levelIdx); }
+if (QS.get('mapa')){ active=[true,true]; if (QS.get('mapa')==='todo'){ prog={max:MAIN,gold:[0,1,2,3,4],done:[0],story:true,won:false}; } goMap(); }
 requestAnimationFrame(frame);
 addEventListener('pointerdown', ()=>audio());
 </script>
