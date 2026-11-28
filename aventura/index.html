@@ -140,7 +140,7 @@ const LEVELS = [
  // ============================== MUNDO 2: LA MONTAÑA DE HIELO
  { name:'La montaña de nieve', theme:'nieve',
    say:'Los botones con dibujo de piedra se pisan con piedras. ¡Abrid la reja y buscad la llave!',
-   hint:'Pista: una piedra para cada botón. Si una se queda pegada a la pared, pulsad B para deshacer.',
+   hint:'Pista: una piedra para cada botón. Si una se queda pegada a la pared, pulsad Y para deshacer.',
    map:[
  '####################',
  '#1.....#.....#.....#',
@@ -438,7 +438,7 @@ const LEVELS = [
  '####################']},
  { name:'El laberinto del castillo', theme:'castillo',
    say:'¡Un laberinto de piedras! Llevad cada piedra a su botón sin que se quede atascada.',
-   hint:'Pista: si una piedra se queda pegada a una pared, pulsad B para deshacer o mantened Y.',
+   hint:'Pista: si una piedra se queda pegada a una pared, pulsad Y para deshacer o mantenedlo para empezar de nuevo.',
    map:[
  '####################',
  '#1..#.##.#....#....#',
@@ -634,15 +634,15 @@ function say(text){
 const tpl = s => s.replace(/\{D\}/g, NAMES.diego).replace(/\{S\}/g, NAMES.sofia);
 
 // ---------------------------------------------------------------- mandos
-// Cada "hueco" es un mando. Hueco 0 = flechas/Enter/espacio (+ Retroceso deshacer, R reiniciar)
-// hueco 1 = WASD + F (+ E deshacer, T reiniciar)
+// Cada "hueco" es un mando. Hueco 0 = flechas/Enter/espacio (+ Retroceso/R: Y)
+// hueco 1 = WASD + F (+ E/T: Y)
 function mkSrc(){ return { l:0,r:0,u:0,d:0, ax:0, ay:0, a:0, x:0, b:0, y:0, start:0 }; }
 const SRC = [ {kb:mkSrc(), app:mkSrc(), gp:mkSrc()}, {kb:mkSrc(), app:mkSrc(), gp:mkSrc()} ];
 const IN = [0,1].map(()=>({ x:0, y:0, a:false, aP:false, xb:false, xP:false, b:false, bP:false, hold:false, start:false, sP:false, l:false, r:false, u:false, d:false, lP:false, rP:false, uP:false, dP:false, seen:false, any:false }));
 
 // hueco 0: Enter/espacio = A (magia), Mayús/Ctrl/M = X (golpe)   hueco 1: F/Q = A, G/H = X
-const KEYS0 = { 37:'l', 39:'r', 38:'u', 40:'d', 13:'a', 32:'a', 16:'x', 17:'x', 77:'x', 8:'b', 85:'b', 82:'y' };
-const KEYS1 = { 65:'l', 68:'r', 87:'u', 83:'d', 70:'a', 81:'a', 71:'x', 72:'x', 69:'b', 84:'y' };
+const KEYS0 = { 37:'l', 39:'r', 38:'u', 40:'d', 13:'a', 32:'a', 16:'x', 17:'x', 77:'x', 8:'y', 85:'y', 82:'y' };
+const KEYS1 = { 65:'l', 68:'r', 87:'u', 83:'d', 70:'a', 81:'a', 71:'x', 72:'x', 69:'y', 84:'y' };
 addEventListener('keydown', e=>{
   audio();
   let k=KEYS0[e.keyCode], s=0;
@@ -691,9 +691,9 @@ function updateInput(){
       if (m<0.3){ ax=0; ay=0; } else { const k=Math.min(1,(m-0.3)/0.6)/m; ax*=k; ay*=k; }
       x+=ax+(src.r-src.l); y+=ay+(src.d-src.u);
       // una pulsación muy corta (bajar y subir en el mismo instante) también cuenta
-      a|=src.a|(src._a||0); xx|=src.x|(src._x||0); bb|=src.b|(src._b||0); yy|=src.y; st|=src.start|(src._start||0);
+      a|=src.a|(src._a||0); xx|=src.x|(src._x||0); bb|=src.b|(src._b||0); yy|=src.y|(src._y||0); st|=src.start|(src._start||0);
       l|=src.l||src._l||src.ax<-0.6; r|=src.r||src._r||src.ax>0.6; u|=src.u||src._u||src.ay<-0.6; d|=src.d||src._d||src.ay>0.6;
-      src._a=src._x=src._b=src._start=src._l=src._r=src._u=src._d=0;
+      src._a=src._x=src._b=src._y=src._start=src._l=src._r=src._u=src._d=0;
     }
     const m=Math.hypot(x,y); if (m>1){ x/=m; y/=m; }
     I.aP = a && !I.a; I.xP = xx && !I.xb; I.bP = bb && !I.b; I.sP = st && !I.start;
@@ -721,6 +721,7 @@ let starsTotal=0, starsGot=0, doorOpen=false, gatesOpen=false;
 let bubbleTimer=0, speech=null, stateT=0, storyPage=0, hintBubbles=[];
 let staticLayer=null, staticDirty=true;
 let underMap={}, undoStack=[], paintLeft=Infinity, colorOpen={x:0,o:0}, colorEver={x:false,o:false};
+let yHold=[0,0], yUsed=[false,false];
 let restartT=0, idleT=0, ambient=[], waterTiles=[], swState=0, pendingDown=new Set(), goldGot=false;
 
 const worldOf = i => i<MAIN ? Math.floor(i/6) : i-MAIN;
@@ -1067,13 +1068,14 @@ function updatePlay(dt, frozen){
     }
   }
   if (!frozen && IN.some(I=>I.sP)){ state='pause'; return; }
-  // deshacer (B) y reiniciar (mantener Y)
+  // botón Y: pulsar y soltar = deshacer; mantener = empezar de nuevo (B ya no hace nada al jugar, se pulsaba sin querer)
   if (!frozen){
-    if (players.some(p=>IN[p.slot].bP)) undo();
-    if (players.some(p=>IN[p.slot].hold)){
-      restartT+=dt;
-      if (restartT>1.8){ restartT=0; loadLevel(levelIdx,true); SFX.open(); talk('¡Otra vez desde el principio!',2.5); return; }
-    } else restartT=Math.max(0,restartT-dt*3);
+    for (const p of players){ const s=p.slot;
+      if (IN[s].hold){ if (!yUsed[s]) yHold[s]+=dt; }
+      else { if (yHold[s]>0 && yHold[s]<0.45 && !yUsed[s]) undo(); yHold[s]=0; yUsed[s]=false; }
+    }
+    restartT=Math.max(yHold[0],yHold[1]);
+    if (restartT>1.8){ yHold=[0,0]; yUsed=[true,true]; restartT=0; loadLevel(levelIdx,true); SFX.open(); talk('¡Otra vez desde el principio!',2.5); return; }
   }
   // pista de Tito si llevan rato sin avanzar
   if (!frozen && L.hint){ idleT+=dt; if (idleT>45){ idleT=0; talk(tpl(L.hint),7); } }
@@ -1841,7 +1843,7 @@ function drawPlay(t){
   for (const hb of hintBubbles){ const a=Math.min(1,hb.t*2); g.globalAlpha=a;
     circle(g,hb.x,hb.y,34,'rgba(255,255,255,.95)'); g.strokeStyle=COLORS[hb.who]; g.lineWidth=4; g.stroke(); drawFace(g,hb.who,hb.x,hb.y+4,1.2); g.globalAlpha=1; }
   drawHUD(g,t);
-  if (restartT>0.05){ const k=Math.min(1,restartT/1.8), x=W/2, y=TOP+70;
+  if (restartT>0.45){ const k=Math.min(1,(restartT-0.45)/1.35), x=W/2, y=TOP+70;
     circle(g,x,y,40,'rgba(20,30,70,.75)'); g.strokeStyle='#ffe27a'; g.lineWidth=8; g.lineCap='round'; g.beginPath(); g.arc(x,y,30,-Math.PI/2,-Math.PI/2+k*Math.PI*2); g.stroke();
     g.strokeStyle='#fff'; g.lineWidth=4; g.beginPath(); g.arc(x,y,13,0.3,Math.PI*1.7); g.stroke();
     g.fillStyle='#fff'; g.beginPath(); g.moveTo(x+13,y-14); g.lineTo(x+16,y-2); g.lineTo(x+4,y-5); g.closePath(); g.fill(); }
@@ -1906,7 +1908,7 @@ function drawHUD(g,t){
   // ayuda para los mayores: deshacer y reiniciar
   if (goldGot) drawGold(g, W/2-(starsTotal*46)/2-56, TOP/2+2, t);
   if (L){
-    const txt = L.basic ? 'A y X: disparar   ·   B: deshacer   ·   mantener Y: empezar de nuevo' : 'A: magia   ·   X: golpe   ·   B: deshacer   ·   mantener Y: empezar de nuevo';
+    const txt = L.basic ? 'A y X: disparar   ·   Y: deshacer   ·   mantener Y: empezar de nuevo' : 'A: magia   ·   X: golpe   ·   Y: deshacer   ·   mantener Y: empezar de nuevo';
     g.font='bold 15px system-ui,Arial'; g.textAlign='center'; g.textBaseline='middle';
     const w=g.measureText(txt).width+24; rrect(g,W/2-w/2,H-26,w,22,11,'rgba(0,0,0,.35)'); g.fillStyle='rgba(255,255,255,.9)'; g.fillText(txt,W/2,H-15);
   }
