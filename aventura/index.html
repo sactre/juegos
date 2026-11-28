@@ -2,6 +2,8 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
+<!-- versión: súbela en cada cambio; la portada la lee de aquí -->
+<meta name="version" content="9 (28 nov)">
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
 <title>Las estrellas perdidas</title>
 <style>
@@ -21,6 +23,7 @@ const QS = new URLSearchParams(location.search);
 const NAMES = { diego: QS.get('n1') || 'Diego', sofia: QS.get('n2') || 'Sofía' };
 const COLORS = { diego: '#39c45a', sofia: '#b77bff' };
 
+const VERSION=(document.querySelector('meta[name=version]')||{}).content||'';
 const W=1280, H=720, TS=64, COLS=20, ROWS=10, TOP=80;
 const IN_APP = !!window.AndroidApp;
 const LOWPOWER = IN_APP || /SMART-?TV|Tizen|Web0S|webOS|NetCast|Android ?TV|GoogleTV|BRAVIA|AFT|CrKey|HbbTV/i.test(navigator.userAgent||'') || QS.get('tv')==='1';
@@ -1947,6 +1950,7 @@ function drawTitle(t){
   if (prog.max>1){ const n=prog.max-1+(prog.won?1:0); star(g,W/2-40,210,20,0,'#ffd93b','#a07a00',2); bigText(g,n+' / '+MAIN,W/2+30,212,34,'#ffffff'); }
   const k=0.5+0.5*Math.sin(t*4);
   g.globalAlpha=.6+.4*k; bigText(g,'Pulsa A para empezar',W/2,H-36,36,'#ffffff'); g.globalAlpha=1;
+  g.font='bold 20px system-ui,Arial'; g.textAlign='left'; g.textBaseline='bottom'; g.fillStyle='rgba(255,255,255,.7)'; g.fillText('Versión '+VERSION, 16, H-12);
   drawParts(g);
 }
 function drawPadIcon(g,x,y,n,lit){

@@ -2,6 +2,8 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
+<!-- versión: súbela en cada cambio; la portada la lee de aquí -->
+<meta name="version" content="16 (28 nov)">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -22,6 +24,7 @@
 <script>
 (function(){
 'use strict';
+const VERSION=(document.querySelector('meta[name=version]')||{}).content||'';
 const W = 1600, H = 900, R = 27, D = 54;
 const SX = 800, SY = 450;               // posición de la tortuga
 const FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif';
@@ -1612,6 +1615,7 @@ function drawTitle(){
   ctx.strokeStyle='#f4cf63'; ctx.lineWidth=3; ctx.stroke();
   ctx.font='bold 32px '+FONT; ctx.fillStyle='#ffe28a'; ctx.textAlign='center'; ctx.textBaseline='middle';
   ctx.fillText(usedTouch ? 'Ver ranking' : '▼  Ver ranking', rankBtn.x+rankBtn.w/2, rankBtn.y+rankBtn.h/2+2);
+  ctx.font='bold 24px '+FONT; ctx.fillStyle='rgba(255,255,255,0.7)'; ctx.textAlign='left'; ctx.textBaseline='bottom'; ctx.fillText('Versión '+VERSION, 20, H-14);
 }
 let _titleBg=null;
 function titleBg(){ return _titleBg || (_titleBg=renderBackground(null)); }

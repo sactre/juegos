@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
+<meta name="version" content="6 (28 nov)">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Juegos de casa</title>
 <style>
@@ -21,6 +22,8 @@
   .balls span{width:54px;height:54px;border-radius:50%;box-shadow:inset -6px -8px 0 rgba(0,0,0,.25),inset 6px 6px 0 rgba(255,255,255,.35);}
   .balls span.star{box-shadow:none;width:auto;height:54px;font-size:54px;line-height:54px;color:#ffd93b;text-shadow:0 3px 0 #a07a00;}
   a.game.upd{margin-top:5vh;padding:14px 32px;font-size:clamp(18px,2vw,28px);background:#14402c;border-radius:24px;box-shadow:0 6px 0 rgba(0,0,0,.35);}
+  .ver{font-size:clamp(16px,1.6vw,24px);font-weight:normal;opacity:.8;min-height:1.2em;}
+  p.ver-all{margin-top:3vh;font-size:clamp(16px,1.6vw,24px);opacity:.75;text-align:center;}
   p.hint{margin-top:6vh;font-size:clamp(20px,2.4vw,34px);opacity:.85;text-align:center;}
 </style>
 </head>
@@ -30,14 +33,17 @@
     <a class="game" href="bolas/" autofocus>
       <div class="balls"><span style="background:#e53935"></span><span style="background:#f7c600"></span><span style="background:#1f6fe5"></span><span style="background:#24a83c"></span></div>
       Collar de Colores
+      <span class="ver"></span>
     </a>
     <a class="game" href="aventura/">
       <div class="balls"><span class="star">★</span><span class="star">★</span><span class="star">★</span></div>
       Las estrellas perdidas
+      <span class="ver"></span>
     </a>
   </div>
   <a class="game upd" id="upd" href="#">Buscar actualizaciones</a>
   <p class="hint">Pulsa OK en el mando para jugar</p>
+  <p class="ver-all" id="verAll"></p>
 <script>
   const links=[...document.querySelectorAll('a.game')];
   // sin pantalla táctil (tele u ordenador): el juego entra en modo tele
@@ -53,6 +59,14 @@
     document.getElementById('upd').textContent='Actualizando…';
     location.replace(location.pathname+'?v='+v);
   });
+  // versión de cada juego: se lee del mismo archivo que se va a abrir (con la misma marca de
+  // actualización), así se ve si "Buscar actualizaciones" ha traído una versión nueva
+  links.forEach(a=>{ const sp=a.querySelector('.ver'); if(!sp) return;
+    fetch(a.href).then(r=>r.text()).then(t=>{ const m=t.match(/<meta name="version" content="([^"]*)"/); if(m) sp.textContent='Versión '+m[1]; }).catch(()=>{});
+  });
+  { const pv=document.querySelector('meta[name=version]').content; let app='';
+    try{ if(window.AndroidApp&&AndroidApp.version) app=' · App de la tele '+AndroidApp.version(); }catch(e){}
+    document.getElementById('verAll').textContent='Portada '+pv+app; }
   links[0].focus();
   addEventListener('keydown',e=>{
     const i=links.indexOf(document.activeElement);
