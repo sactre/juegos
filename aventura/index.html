@@ -1065,6 +1065,7 @@ function updatePlay(dt, frozen){
       // si se une a mitad del nivel, trae lo que ya tenga su compañero
       if (o){ np.magic=np.magic||o.magic; np.golpe=np.golpe||o.golpe; }
       burst(np.x, np.y-30, RAINBOW, 20, 220, .8, 5);
+      IN[s].aP=IN[s].xP=false;   // el botón que le hace entrar no dispara
     }
   }
   if (!frozen && IN.some(I=>I.sP)){ state='pause'; return; }

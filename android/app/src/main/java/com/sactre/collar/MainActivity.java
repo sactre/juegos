@@ -2,6 +2,8 @@ package com.sactre.collar;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.Context;
+import android.hardware.input.InputManager;
 import android.os.Bundle;
 import android.view.InputDevice;
 import android.view.KeyEvent;
@@ -15,8 +17,6 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
-import java.util.ArrayList;
-
 /**
  * Abre los juegos a pantalla completa y les pasa los mandos de consola directamente
  * (sin el cursor que pone el navegador de la tele). Distingue hasta 2 mandos:
@@ -28,14 +28,16 @@ public class MainActivity extends Activity {
     private static final String OFFLINE = "file:///android_asset/site/";
 
     private WebView web;
-    private final ArrayList<Integer> pads = new ArrayList<>();
+    /** Qué mando lleva cada jugador (-1 = libre). Un mando que se apaga y se vuelve a encender
+     *  llega con otro número, así que al desconectarse se libera su hueco. */
+    private final int[] slotDev = {-1, -1};
     private final float[] lastX = new float[2], lastY = new float[2];
     private final int[] hatX = new int[2], hatY = new int[2];
 
     /** El juego comprueba window.AndroidApp para saber que va dentro de la app. */
     public static class Bridge {
         @JavascriptInterface
-        public String version() { return "2"; }
+        public String version() { return "2.1"; }
     }
 
     @Override
@@ -75,6 +77,12 @@ public class MainActivity extends Activity {
         web.setFocusable(false);
         web.setFocusableInTouchMode(false);
         setContentView(web);
+        InputManager im = (InputManager) getSystemService(Context.INPUT_SERVICE);
+        im.registerInputDeviceListener(new InputManager.InputDeviceListener() {
+            @Override public void onInputDeviceAdded(int id) { }
+            @Override public void onInputDeviceChanged(int id) { }
+            @Override public void onInputDeviceRemoved(int id) { freeSlot(id); }
+        }, null);
         hideSystemUi();
         web.loadUrl(HOME);
     }
@@ -99,10 +107,24 @@ public class MainActivity extends Activity {
 
     /** Jugador 1 o 2 según el orden en que se usan los mandos. El mando de la tele es el jugador 1. */
     private int slotOf(int deviceId, boolean gamepad) {
+        for (int s = 0; s < 2; s++) if (slotDev[s] == deviceId) return s;
         if (!gamepad) return 0;
-        int i = pads.indexOf(deviceId);
-        if (i < 0) { pads.add(deviceId); i = pads.size() - 1; }
-        return Math.min(i, 1);
+        // hueco libre, o el de un mando que ya no está conectado
+        for (int s = 0; s < 2; s++) {
+            if (slotDev[s] == -1 || InputDevice.getDevice(slotDev[s]) == null) {
+                slotDev[s] = deviceId; lastX[s] = lastY[s] = 0; hatX[s] = hatY[s] = 0;
+                return s;
+            }
+        }
+        return 1;
+    }
+
+    private void freeSlot(int deviceId) {
+        for (int s = 0; s < 2; s++) if (slotDev[s] == deviceId) {
+            slotDev[s] = -1;
+            // suelta lo que tuviera pulsado ese jugador
+            js("if(window.__pads){__pads.axes(" + s + ",0,0);['a','b','x','y','l1','r1','start','up','down','left','right'].forEach(function(b){__pads.key(" + s + ",b,false);});}");
+        }
     }
 
     /** btn = nombre para los juegos de 2 jugadores; code = tecla para los de 1 jugador. */
