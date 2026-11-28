@@ -9,3 +9,7 @@ Juegos sencillos para jugar en la tele (con el mando), en el iPad o en el ordena
   - Pruebas: `?nivel=N` abre el nivel N (31-35 son los secretos), `&solo=1` con un jugador, `?mapa=todo` abre el mapa con todo desbloqueado.
 
 Web: https://sactre.github.io/juegos/
+
+## Versiones
+
+Cada juego lleva su versión en `<meta name="version" content="N (fecha)">` (también la portada). Súbela en cada cambio: la portada la lee del mismo archivo que se va a abrir y la enseña debajo de cada juego, y cada juego la pinta en su pantalla de título. Así, tras "Buscar actualizaciones", se ve si ha llegado la versión nueva. La portada también muestra la versión de la app de la tele.
